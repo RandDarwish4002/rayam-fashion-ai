@@ -1,4 +1,67 @@
 {
-  "status": "error",
-  "message": "TokenizersBackend has no attribute additional_special_tokens"
+  "status": "success",
+  "image_path": "/content/rayam-fashion-ai/download.jfif",
+  "description": "The image shows a black turtleneck sweater on a black background. The sweater has a high neckline and long sleeves, and is made of a soft, comfortable material. The black color of the sweater stands out against the dark background, creating a striking contrast.",
+  "attributes": {
+    "category": "a sweater or knitwear",
+    "sleeve": "clothing with 3/4 length sleeves",
+    "fit": "regular or standard fit clothing",
+    "neckline": "turtleneck or high neck",
+    "pattern": "horizontal or vertical stripes",
+    "occasion": "sportswear or athletic clothing",
+    "season": "spring or autumn mid-weight clothing",
+    "material_look": "knit or knitwear texture"
+  },
+  "confidence": {
+    "category": 5.3,
+    "sleeve": 20.4,
+    "fit": 20.1,
+    "neckline": 12.8,
+    "pattern": 10.5,
+    "occasion": 16.8,
+    "season": 33.4,
+    "material_look": 10.3
+  },
+  "colors": [
+    {
+      "hex": "#272829",
+      "weight": 90.7,
+      "lab": [
+        16.1,
+        0.1,
+        -1.3
+      ],
+      "group": "Neutrals"
+    },
+    {
+      "hex": "#cfcfcf",
+      "weight": 6.3,
+      "lab": [
+        83.2,
+        -0.0,
+        -0.0
+      ],
+      "group": "Neutrals"
+    },
+    {
+      "hex": "#8e8e8e",
+      "weight": 3.0,
+      "lab": [
+        59.4,
+        0.0,
+        -0.0
+      ],
+      "group": "Neutrals"
+    }
+  ],
+  "primary_color": {
+    "hex": "#272829",
+    "weight": 90.7,
+    "lab": [
+      16.1,
+      0.1,
+      -1.3
+    ],
+    "group": "Neutrals"
+  }
 }
