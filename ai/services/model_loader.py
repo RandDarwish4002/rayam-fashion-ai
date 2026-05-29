@@ -1,25 +1,32 @@
 # ============================================================
 # ai/services/model_loader.py
-# Singleton Model Loader (Florence-2 + CLIP)
-# FIXED: FP16 safe + device handling
+# تحميل النماذج مرة واحدة (Singleton Pattern)
+# Florence-2 + CLIP
 # ============================================================
 
 import torch
 import clip
-from transformers import AutoProcessor, AutoModelForCausalLM
+from transformers import (
+    AutoProcessor,
+    AutoModelForCausalLM
+)
 
-# -----------------------------
-# Device
-# -----------------------------
+# تحديد الجهاز
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Always safe default for T4
+# precision حسب الجهاز
 DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
 
 class ModelLoader:
     """
-    Singleton loader for all models
+    Singleton Loader
+
+    يحمّل:
+    - Florence-2
+    - CLIP
+
+    مرة واحدة فقط ويحفظهم في الذاكرة
     """
 
     _florence_proc = None
@@ -28,13 +35,14 @@ class ModelLoader:
     _clip_model = None
     _clip_prep = None
 
+    # cache لـ text features
     _clip_text_cache = {}
 
     # ========================================================
-    # Device getter
+    # device
     # ========================================================
     @classmethod
-    def get_device(cls):
+    def get_device(cls) -> str:
         return DEVICE
 
     # ========================================================
@@ -42,7 +50,12 @@ class ModelLoader:
     # ========================================================
     @classmethod
     def florence(cls):
-        if cls._florence_model is None:
+        """
+        يرجع:
+        processor, model
+        """
+
+        if cls._florence_proc is None:
             print("تحميل Florence-2...")
 
             model_id = "microsoft/Florence-2-base"
@@ -69,6 +82,11 @@ class ModelLoader:
     # ========================================================
     @classmethod
     def clip(cls):
+        """
+        يرجع:
+        model, preprocess
+        """
+
         if cls._clip_model is None:
             print("تحميل CLIP...")
 
@@ -84,36 +102,49 @@ class ModelLoader:
         return cls._clip_model, cls._clip_prep
 
     # ========================================================
-    # CLIP text cache
+    # CLIP text feature cache
     # ========================================================
     @classmethod
     def get_clip_text_features(cls, key: str, labels: list):
+        """
+        يحسب text embeddings مرة واحدة فقط
+        """
+
         if key in cls._clip_text_cache:
             return cls._clip_text_cache[key]
 
-        model, _ = cls.clip()
+        clip_model, _ = cls.clip()
 
         with torch.no_grad():
             tokens = clip.tokenize(labels).to(DEVICE)
 
-            features = model.encode_text(tokens)
-            features = features / features.norm(dim=-1, keepdim=True)
+            text_features = clip_model.encode_text(tokens)
+            text_features = text_features / text_features.norm(
+                dim=-1,
+                keepdim=True
+            )
 
-        cls._clip_text_cache[key] = features
-        return features
+        cls._clip_text_cache[key] = text_features
+        return text_features
 
     # ========================================================
-    # cleanup
+    # unload
     # ========================================================
     @classmethod
     def unload_all(cls):
+        """
+        تحرير الذاكرة
+        """
+
         cls._florence_proc = None
         cls._florence_model = None
+
         cls._clip_model = None
         cls._clip_prep = None
+
         cls._clip_text_cache = {}
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        print("✓ تم تحرير الذاكرة")
+        print("✓ تم تحرير النماذج من الذاكرة")
