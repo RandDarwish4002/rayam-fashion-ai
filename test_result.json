@@ -1,87 +1,77 @@
 {
   "status": "success",
-  "image_path": "/content/rayam-fashion-ai/purple-dress.png",
-  "description": "The image shows a beautiful purple ball gown with a sweetheart neckline and beaded bodice, set against a black background. The dress is made of a light, airy fabric and has a fitted bodice with a full skirt that flares out from the waist. The bodice is adorned with intricate beading and the skirt is full and voluminous, giving the dress a graceful and elegant look.",
+  "image_path": "/content/rayam-fashion-ai/thumbnail-500x500.webp",
+  "description": "The image shows a woman in a black dress with a mask on her face, holding a handbag in her hand. The background is dark, creating a mysterious atmosphere.",
   "attributes": {
     "category": "dress",
-    "sleeve": null,
+    "sleeve": "sleeveless",
     "fit": "slim fit",
     "neckline": "off shoulder",
     "pattern": "solid color",
-    "occasion": null,
+    "occasion": "formal wear",
     "season": "spring autumn clothing",
-    "material_look": null
+    "material_look": "mesh fabric"
   },
   "confidence": {
-    "category": 99.2,
-    "sleeve": 37.2,
-    "fit": 79.7,
-    "neckline": 59.0,
-    "pattern": 92.3,
-    "occasion": 48.8,
-    "season": 85.6,
-    "material_look": 35.5
+    "category": 62.4,
+    "sleeve": 47.7,
+    "fit": 57.2,
+    "neckline": 56.3,
+    "pattern": 90.0,
+    "occasion": 61.6,
+    "season": 90.5,
+    "material_look": 24.0
   },
   "colors": [
     {
-      "hex": "#a849b1",
-      "weight": 30.2,
+      "hex": "#0c0e12",
+      "weight": 59.6,
       "lab": [
-        47.4,
-        50.4,
-        -37.8
+        4.0,
+        0.1,
+        -2.5
       ],
-      "group": "Brights"
+      "group": "Darks"
     },
     {
-      "hex": "#8f3795",
-      "weight": 26.8,
+      "hex": "#27272b",
+      "weight": 29.7,
       "lab": [
-        39.1,
-        47.4,
-        -34.7
-      ],
-      "group": "Brights"
-    },
-    {
-      "hex": "#732079",
-      "weight": 20.3,
-      "lab": [
-        29.5,
-        44.9,
-        -32.4
-      ],
-      "group": "Brights"
-    },
-    {
-      "hex": "#bd69c8",
-      "weight": 17.0,
-      "lab": [
-        57.1,
-        45.0,
-        -35.5
+        15.8,
+        0.8,
+        -2.7
       ],
       "group": "Neutrals"
     },
     {
-      "hex": "#927892",
-      "weight": 5.7,
+      "hex": "#52453f",
+      "weight": 5.5,
       "lab": [
-        53.8,
-        13.9,
-        -10.5
+        30.8,
+        4.6,
+        5.7
       ],
-      "group": "Neutrals"
+      "group": "Darks"
+    },
+    {
+      "hex": "#8e6851",
+      "weight": 4.4,
+      "lab": [
+        47.8,
+        13.2,
+        19.4
+      ],
+      "group": "Metallics"
     }
   ],
   "primary_color": {
-    "hex": "#a849b1",
-    "weight": 30.2,
+    "hex": "#0c0e12",
+    "weight": 59.6,
     "lab": [
-      47.4,
-      50.4,
-      -37.8
+      4.0,
+      0.1,
+      -2.5
     ],
-    "group": "Brights"
+    "group": "Darks"
   }
 }
