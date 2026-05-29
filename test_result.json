@@ -4,79 +4,83 @@
   "description": "The image shows a beautiful purple ball gown with a sweetheart neckline and beaded bodice, set against a black background. The dress is made of a light, airy fabric and has a fitted bodice with a full skirt that flares out from the waist. The bodice is adorned with intricate beading and the skirt is full and voluminous, giving the dress a graceful and elegant look.",
   "attributes": {
     "category": "dress",
+    "sleeve": "sleeveless",
     "fit": "slim fit",
     "neckline": "off shoulder",
     "pattern": "solid color",
     "occasion": "formal wear",
-    "season": "spring autumn clothing"
+    "season": "spring autumn clothing",
+    "material_look": "velvet fabric"
   },
   "confidence": {
     "category": 99.2,
+    "sleeve": 37.2,
     "fit": 79.7,
     "neckline": 59.0,
-    "pattern": 92.3,
+    "pattern": 90.0,
     "occasion": 48.8,
-    "season": 85.6
+    "season": 85.6,
+    "material_look": 35.5
   },
   "colors": [
     {
-      "hex": "#a749af",
-      "weight": 31.8,
+      "hex": "#9a3da1",
+      "weight": 44.7,
       "lab": [
-        47.1,
-        49.8,
-        -37.4
+        42.5,
+        49.2,
+        -36.3
       ],
       "group": "Brights"
     },
     {
-      "hex": "#8b3292",
-      "weight": 28.5,
+      "hex": "#b962c3",
+      "weight": 26.7,
       "lab": [
-        37.7,
-        47.7,
-        -34.7
-      ],
-      "group": "Brights"
-    },
-    {
-      "hex": "#bd6ac8",
-      "weight": 17.4,
-      "lab": [
-        57.4,
-        44.7,
-        -35.2
+        55.0,
+        46.3,
+        -36.2
       ],
       "group": "Neutrals"
     },
     {
-      "hex": "#6f2076",
-      "weight": 16.9,
+      "hex": "#75227b",
+      "weight": 22.1,
       "lab": [
-        28.7,
-        43.7,
-        -31.8
+        30.2,
+        45.0,
+        -32.6
       ],
       "group": "Brights"
     },
     {
-      "hex": "#8e748f",
-      "weight": 5.3,
+      "hex": "#7b5b7d",
+      "weight": 3.4,
       "lab": [
-        52.2,
-        14.3,
-        -10.8
+        43.1,
+        18.5,
+        -14.2
+      ],
+      "group": "Neutrals"
+    },
+    {
+      "hex": "#a593a4",
+      "weight": 3.1,
+      "lab": [
+        63.1,
+        9.6,
+        -6.7
       ],
       "group": "Neutrals"
     }
   ],
   "primary_color": {
-    "hex": "#a749af",
-    "weight": 31.8,
+    "hex": "#9a3da1",
+    "weight": 44.7,
     "lab": [
-      47.1,
-      49.8,
-      -37.4
+      42.5,
+      49.2,
+      -36.3
     ],
     "group": "Brights"
   }
