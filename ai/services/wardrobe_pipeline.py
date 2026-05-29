@@ -1,18 +1,17 @@
 
 # ============================================================
 # ai/services/wardrobe_pipeline.py
-# يطابق: AIClassifier.analyzeItem(image): FashionItem
+# AI Fashion Pipeline
 # ============================================================
 
 import os
 import json
-from PIL import Image
 from typing import Dict, List, Optional
 
-from ai.services.background_remover   import BackgroundRemover
-from ai.services.clothing_describer   import ClothingDescriber
+from ai.services.background_remover import BackgroundRemover
+from ai.services.clothing_describer import ClothingDescriber
 from ai.services.attribute_classifier import AttributeClassifier
-from ai.services.color_extractor      import ColorExtractor
+from ai.services.color_extractor import ColorExtractor
 from ai.services.smart_decision_layer import SmartDecisionLayer
 
 
@@ -39,9 +38,8 @@ class WardrobePipeline:
             description = self.describer.describe(image)
 
             print("③ تصنيف الـ attributes...")
-            raw_attributes = self.attr_clf.classify(image, description)
+            raw_attributes = self.attr_clf.classify(image)
 
-            # 🔥 SMART DECISION LAYER
             print("③.1 دمج وتحسين النتائج...")
             attributes = self.smart_layer.resolve(raw_attributes, description)
 
@@ -56,10 +54,8 @@ class WardrobePipeline:
                 "image_path": image_path,
                 "description": description,
 
-                # ✔ cleaned attributes
                 "attributes": attributes,
 
-                # ✔ confidence still available (optional clean version)
                 "confidence": {
                     k: v["confidence"]
                     for k, v in raw_attributes.items()
@@ -93,11 +89,7 @@ class WardrobePipeline:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
-    def analyze_wardrobe(
-        self,
-        image_paths: List[str],
-        save_path: Optional[str] = None
-    ) -> List[Dict]:
+    def analyze_wardrobe(self, image_paths: List[str], save_path: Optional[str] = None) -> List[Dict]:
 
         results = []
         success = 0
