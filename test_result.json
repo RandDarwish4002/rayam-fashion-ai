@@ -1,4 +1,78 @@
 {
-  "status": "error",
-  "message": "خطأ: Input type (float) and bias type (c10::Half) should be the same"
+  "status": "success",
+  "image_path": "/content/rayam-fashion-ai/thumbnail-500x500.webp",
+  "description": "The image shows a woman in a black dress with a mask on her face, holding a handbag in her hand. The background is dark, creating a mysterious atmosphere.",
+  "attributes": {
+    "season": "medium weight spring or autumn clothing",
+    "category": "a dress"
+  },
+  "confidence": {
+    "category": 5.1,
+    "sleeve": 20.4,
+    "fit": 20.2,
+    "neckline": 12.8,
+    "pattern": 10.4,
+    "occasion": 17.2,
+    "season": 33.8,
+    "material_look": 10.3
+  },
+  "colors": [
+    {
+      "hex": "#0a0c11",
+      "weight": 55.2,
+      "lab": [
+        3.5,
+        0.1,
+        -2.5
+      ],
+      "group": "Darks"
+    },
+    {
+      "hex": "#222226",
+      "weight": 28.7,
+      "lab": [
+        13.6,
+        0.7,
+        -2.8
+      ],
+      "group": "Darks"
+    },
+    {
+      "hex": "#423d3c",
+      "weight": 8.9,
+      "lab": [
+        26.4,
+        2.2,
+        1.1
+      ],
+      "group": "Neutrals"
+    },
+    {
+      "hex": "#8e6952",
+      "weight": 6.0,
+      "lab": [
+        48.1,
+        13.1,
+        19.0
+      ],
+      "group": "Metallics"
+    }
+  ],
+  "primary_color": {
+    "hex": "#0a0c11",
+    "weight": 55.2,
+    "lab": [
+      3.5,
+      0.1,
+      -2.5
+    ],
+    "group": "Darks"
+  },
+  "engine_log": [
+    "Florence استخرج: ['category']",
+    "CLIP مرفوض لضعف الثقة: ['category: 5.1% < 40.0% threshold', 'sleeve: 20.4% < 35.0% threshold', 'fit: 20.2% < 25.0% threshold', 'neckline: 12.8% < 30.0% threshold', 'pattern: 10.4% < 25.0% threshold', 'occasion: 17.2% < 30.0% threshold', 'material_look: 10.3% < 20.0% threshold']",
+    "season: CLIP فقط → medium weight spring or autumn clothing (33.8%)",
+    "category: Florence فقط → a dress",
+    "✓ تطبيق قواعد الأزياء"
+  ]
 }
