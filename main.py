@@ -31,7 +31,7 @@ if __name__ == "__main__":
     print("═"*50)
 
     wardrobe = WardrobePipeline()
-    item = wardrobe.analyze_item("/content/rayam-fashion-ai/download.jfif")
+    item = wardrobe.analyze_item("/content/rayam-fashion-ai/purple-dress.png")
 
     if item["status"] == "success":
         print(f"✓ الفئة:    {item['attributes']['category']}")

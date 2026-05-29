@@ -1,67 +1,83 @@
 {
   "status": "success",
-  "image_path": "/content/rayam-fashion-ai/download.jfif",
-  "description": "The image shows a black turtleneck sweater on a black background. The sweater has a high neckline and long sleeves, and is made of a soft, comfortable material. The black color of the sweater stands out against the dark background, creating a striking contrast.",
+  "image_path": "/content/rayam-fashion-ai/purple-dress.png",
+  "description": "The image shows a beautiful purple ball gown with a sweetheart neckline and beaded bodice, set against a black background. The dress is made of a light, airy fabric and has a fitted bodice with a full skirt that flares out from the waist. The bodice is adorned with intricate beading and the skirt is full and voluminous, giving the dress a graceful and elegant look.",
   "attributes": {
-    "category": "a sweater or knitwear",
-    "sleeve": "clothing with 3/4 length sleeves",
-    "fit": "regular or standard fit clothing",
-    "neckline": "turtleneck or high neck",
-    "pattern": "horizontal or vertical stripes",
-    "occasion": "sportswear or athletic clothing",
-    "season": "spring or autumn mid-weight clothing",
-    "material_look": "knit or knitwear texture"
+    "category": "dress",
+    "fit": "slim fit",
+    "neckline": "off shoulder",
+    "pattern": "solid color",
+    "occasion": "formal wear",
+    "season": "spring autumn clothing"
   },
   "confidence": {
-    "category": 5.3,
-    "sleeve": 20.4,
-    "fit": 20.1,
-    "neckline": 12.8,
-    "pattern": 10.5,
-    "occasion": 16.8,
-    "season": 33.4,
-    "material_look": 10.3
+    "category": 99.2,
+    "fit": 79.7,
+    "neckline": 59.0,
+    "pattern": 92.3,
+    "occasion": 48.8,
+    "season": 85.6
   },
   "colors": [
     {
-      "hex": "#272829",
-      "weight": 90.7,
+      "hex": "#a849b1",
+      "weight": 30.9,
       "lab": [
-        16.1,
-        0.1,
-        -1.3
+        47.4,
+        50.4,
+        -37.8
+      ],
+      "group": "Brights"
+    },
+    {
+      "hex": "#8f3796",
+      "weight": 26.2,
+      "lab": [
+        39.3,
+        47.3,
+        -34.7
+      ],
+      "group": "Brights"
+    },
+    {
+      "hex": "#732079",
+      "weight": 20.6,
+      "lab": [
+        29.5,
+        44.8,
+        -32.4
+      ],
+      "group": "Brights"
+    },
+    {
+      "hex": "#be6ac9",
+      "weight": 17.2,
+      "lab": [
+        57.5,
+        44.9,
+        -35.4
       ],
       "group": "Neutrals"
     },
     {
-      "hex": "#cfcfcf",
-      "weight": 6.3,
+      "hex": "#8f758f",
+      "weight": 5.2,
       "lab": [
-        83.2,
-        -0.0,
-        -0.0
-      ],
-      "group": "Neutrals"
-    },
-    {
-      "hex": "#8e8e8e",
-      "weight": 3.0,
-      "lab": [
-        59.4,
-        0.0,
-        -0.0
+        52.6,
+        14.0,
+        -10.4
       ],
       "group": "Neutrals"
     }
   ],
   "primary_color": {
-    "hex": "#272829",
-    "weight": 90.7,
+    "hex": "#a849b1",
+    "weight": 30.9,
     "lab": [
-      16.1,
-      0.1,
-      -1.3
+      47.4,
+      50.4,
+      -37.8
     ],
-    "group": "Neutrals"
+    "group": "Brights"
   }
 }

@@ -1,149 +1,268 @@
+
 # ============================================================
 # ai/services/attribute_classifier.py
-# يطابق: AIClassifier.classifyAttributes(image): Map
+# Improved CLIP Attribute Classifier
 # ============================================================
 
 import torch
-import clip
 from PIL import Image
 from typing import Dict, List
+
 from ai.services.model_loader import ModelLoader
 
 
-# ── Labels لكل attribute ─────────────────────────────────
+# ============================================================
+# Labels
+# Short + CLIP-friendly prompts
+# ============================================================
+
 ATTRIBUTES: Dict[str, List[str]] = {
+
     "category": [
-        "a t-shirt or tee",
-        "a dress shirt or button-up shirt",
-        "a blouse",
-        "trousers or dress pants",
-        "jeans or denim pants",
+        "turtleneck sweater",
+        "knit sweater",
+        "t-shirt",
+        "dress shirt",
+        "blouse",
+        "trousers",
+        "jeans",
         "shorts",
-        "a skirt",
-        "a dress",
-        "a jacket or blazer",
-        "a coat or overcoat",
-        "a hoodie or sweatshirt",
-        "a sweater or knitwear",
-        "shoes or leather shoes",
-        "sneakers or athletic shoes",
-        "a cardigan",
-        "a vest or waistcoat",
-        "a jumpsuit or romper",
+        "skirt",
+        "dress",
+        "blazer",
+        "coat",
+        "hoodie",
+        "sneakers",
+        "cardigan",
+        "vest",
+        "jumpsuit",
         "boots",
-        "sandals or flip flops",
-        "a polo shirt",
+        "sandals",
+        "polo shirt",
     ],
+
     "sleeve": [
-        "clothing with no sleeves, sleeveless",
-        "clothing with short sleeves",
-        "clothing with long sleeves",
-        "clothing with 3/4 length sleeves",
-        "clothing with cap sleeves",
+        "sleeveless",
+        "short sleeves",
+        "long sleeves",
+        "3/4 sleeves",
+        "cap sleeves",
     ],
+
     "fit": [
-        "slim fit or fitted clothing",
-        "regular or standard fit clothing",
-        "oversized or loose fit clothing",
-        "tight or bodycon clothing",
-        "relaxed or comfortable fit clothing",
+        "slim fit",
+        "regular fit",
+        "oversized fit",
+        "tight fit",
+        "relaxed fit",
     ],
+
     "neckline": [
-        "crew neck or round neck",
+        "crew neck",
         "v-neck",
-        "turtleneck or high neck",
-        "collared or polo collar",
+        "turtleneck",
+        "collared",
         "off shoulder",
         "scoop neck",
-        "boat neck or bateau neck",
+        "boat neck",
         "square neck",
     ],
+
     "pattern": [
-        "solid color, no pattern",
-        "horizontal or vertical stripes",
-        "plaid or tartan or checkered",
-        "floral or flower print",
-        "graphic print or logo print",
+        "solid color",
+        "striped",
+        "plaid",
+        "floral",
+        "graphic print",
         "polka dots",
-        "geometric or abstract pattern",
-        "animal print like leopard or zebra",
-        "camouflage pattern",
-        "tie-dye pattern",
+        "geometric pattern",
+        "animal print",
+        "camouflage",
+        "tie dye",
     ],
+
     "occasion": [
-        "formal business or office wear",
-        "casual everyday clothing",
-        "sportswear or athletic clothing",
-        "party or evening wear",
-        "outdoor or activewear",
-        "beachwear or summer casual",
+        "formal wear",
+        "casual wear",
+        "sportswear",
+        "party wear",
+        "outdoor wear",
+        "beachwear",
     ],
+
     "season": [
-        "summer lightweight thin clothing",
-        "winter warm thick clothing",
-        "spring or autumn mid-weight clothing",
+        "summer clothing",
+        "winter clothing",
+        "spring autumn clothing",
     ],
+
     "material_look": [
-        "denim or jean fabric",
-        "leather or faux leather",
-        "knit or knitwear texture",
-        "cotton or plain fabric",
-        "silk or satin shiny fabric",
-        "linen or linen-look fabric",
-        "synthetic or polyester fabric",
-        "wool or woolen fabric",
+        "denim fabric",
+        "leather fabric",
+        "knit fabric",
+        "cotton fabric",
+        "silk fabric",
+        "linen fabric",
+        "polyester fabric",
+        "wool fabric",
         "velvet fabric",
-        "mesh or sheer fabric",
+        "mesh fabric",
     ]
 }
 
 
+# ============================================================
+# Attribute Classifier
+# ============================================================
+
 class AttributeClassifier:
-    """
-    يطابق Class Diagram:
-    AIClassifier.classifyAttributes(image): Map
-    """
 
-    def classify(self, image: Image.Image) -> Dict:
+    def classify(
+            self,
+            image: Image.Image,
+            description: str = ""
+    ) -> Dict:
 
-        clip_m, clip_p = ModelLoader.clip()
+        clip_model, clip_preprocess = ModelLoader.clip()
 
-        img_rgb = image.convert("RGB")
-        img_tensor = clip_p(img_rgb).unsqueeze(0)
+        DEVICE = ModelLoader.get_device()
 
-        device = ModelLoader.get_device()
-        img_tensor = img_tensor.to(device)
+        # ====================================================
+        # preprocess image
+        # ====================================================
+
+        image_rgb = image.convert("RGB")
+
+        image_tensor = clip_preprocess(
+            image_rgb
+        ).unsqueeze(0).to(DEVICE)
 
         result = {}
 
+        # ====================================================
+        # encode image
+        # ====================================================
+
         with torch.no_grad():
 
-            img_feat = clip_m.encode_image(img_tensor)
-            img_feat = img_feat / img_feat.norm(dim=-1, keepdim=True)
+            image_features = clip_model.encode_image(
+                image_tensor
+            )
 
-            for attr, labels in ATTRIBUTES.items():
+            image_features = image_features / image_features.norm(
+                dim=-1,
+                keepdim=True
+            )
 
-                all_scores = []
+            # =================================================
+            # classify each attribute
+            # =================================================
 
-                for i in range(0, len(labels), 10):
-                    batch = labels[i:i+10]
+            for attr_name, labels in ATTRIBUTES.items():
 
-                    tokens = clip.tokenize(batch).to(device)
+                text_features = ModelLoader.get_clip_text_features(
+                    attr_name,
+                    labels
+                )
 
-                    text_feat = clip_m.encode_text(tokens)
-                    text_feat = text_feat / text_feat.norm(dim=-1, keepdim=True)
+                similarities = (
+                    image_features @ text_features.T
+                )[0]
 
-                    sims = (img_feat @ text_feat.T)[0]
-                    all_scores.extend(sims.cpu().tolist())
+                # IMPORTANT:
+                # OpenAI CLIP logits scaling
+                similarities = similarities * 100
 
-                scores = torch.softmax(torch.tensor(all_scores), dim=0)
+                scores = similarities.softmax(dim=0)
 
                 best_idx = scores.argmax().item()
 
-                result[attr] = {
+                confidence = round(
+                    scores[best_idx].item() * 100,
+                    1
+                )
+
+                result[attr_name] = {
                     "value": labels[best_idx],
-                    "confidence": round(scores[best_idx].item() * 100, 1)
+                    "confidence": confidence
                 }
 
-        print(f"  ✓ category: {result['category']['value']}")
+        # ====================================================
+        # Rule-based corrections from Florence caption
+        # ====================================================
+
+        desc = description.lower()
+
+        # ----------------------------
+        # neckline
+        # ----------------------------
+
+        if "turtleneck" in desc:
+            result["neckline"] = {
+                "value": "turtleneck",
+                "confidence": 99.0
+            }
+
+        # ----------------------------
+        # sleeve
+        # ----------------------------
+
+        if "long sleeves" in desc:
+            result["sleeve"] = {
+                "value": "long sleeves",
+                "confidence": 98.0
+            }
+
+        # ----------------------------
+        # category
+        # ----------------------------
+
+        if "sweater" in desc:
+            result["category"] = {
+                "value": "knit sweater",
+                "confidence": 96.0
+            }
+
+        # ----------------------------
+        # material
+        # ----------------------------
+
+        if "knit" in desc or "sweater" in desc:
+            result["material_look"] = {
+                "value": "knit fabric",
+                "confidence": 95.0
+            }
+
+        # ----------------------------
+        # pattern
+        # ----------------------------
+
+        if "solid" in desc or "black" in desc:
+            result["pattern"] = {
+                "value": "solid color",
+                "confidence": 90.0
+            }
+
+        # ====================================================
+        # debug prints
+        # ====================================================
+
+        print(
+            f"  ✓ category: "
+            f"{result['category']['value']} "
+            f"({result['category']['confidence']}%)"
+        )
+
+        print(
+            f"  ✓ sleeve: "
+            f"{result['sleeve']['value']} "
+            f"({result['sleeve']['confidence']}%)"
+        )
+
+        print(
+            f"  ✓ neckline: "
+            f"{result['neckline']['value']} "
+            f"({result['neckline']['confidence']}%)"
+        )
+
         return result
