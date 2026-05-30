@@ -1,358 +1,374 @@
 
 # ============================================================
 # ai/services/fashion_decision_engine.py
-# طبقة القرار الذكي فوق Florence-2 + CLIP
+# نسخة متوازنة — Florence + CLIP + NLP بأوزان صحيحة
 # ============================================================
 
 from typing import Dict, List, Optional, Tuple
 
 # ════════════════════════════════════════════════════════════
-# 1 — قواعد الأزياء المنطقية
+# 1 — أوزان المصادر
 # ════════════════════════════════════════════════════════════
 
-# قواعد الإلزام: لو X إذن Y لازم يكون كذا
-FASHION_RULES = {
-    "sleeve_from_neckline": {
-        "off shoulder":           "sleeveless",
-        "off shoulder neckline":  "sleeveless",
-        "strapless":              "sleeveless",
-    },
-    "sleeve_from_category": {
-        "a dress":                None,   # حر
-        "a skirt":                None,   # لا علاقة
-        "trousers or dress pants":None,
-        "jeans or denim pants":   None,
-        "shorts":                 None,
-        "shoes or leather shoes": None,
-        "sneakers or athletic shoes": None,
-        "boots":                  None,
-        "sandals or flip flops":  None,
-    },
-    "neckline_conflicts": {
-        # turtleneck لا يتوافق مع
-        "turtleneck or high neck": [
-            "off shoulder",
-            "v-neck",
-            "scoop neck",
-            "square neckline",
-        ],
-        "high turtleneck covering the neck": [
-            "off shoulder",
-            "v-neck",
-        ]
-    },
-    "category_sleeve_map": {
-        # فئات لا تحتاج sleeve
-        "no_sleeve_needed": {
-            "shoes or leather shoes",
-            "sneakers or athletic shoes",
-            "boots", "sandals or flip flops",
-            "trousers or dress pants",
-            "jeans or denim pants",
-            "shorts", "a skirt",
-        }
-    }
+SOURCE_WEIGHTS = {
+    "florence": 0.40,   # الوصف الغني — الأساس
+    "clip":     0.35,   # التصنيف البصري المباشر
+    "nlp":      0.25,   # تكملة فقط — لا يتحكم
 }
 
-# عتبات الثقة
-CONFIDENCE_THRESHOLDS = {
-    "category":     40.0,   # أهم attribute
-    "sleeve":       35.0,
-    "neckline":     30.0,
+# عتبات الثقة لكل مصدر
+CLIP_THRESHOLDS = {
+    "category":     40.0,
+    "sleeve":       30.0,
+    "neckline":     28.0,
     "fit":          25.0,
     "pattern":      25.0,
     "occasion":     30.0,
-    "season":       30.0,
+    "season":       28.0,
     "material_look":20.0,
 }
 
-# أوزان Florence مقابل CLIP
-FLORENCE_WEIGHT = 0.60
-CLIP_WEIGHT     = 0.40
+# الـ attributes اللي Florence جيد فيها
+FLORENCE_STRONG = {
+    "category", "neckline", "sleeve",
+    "pattern", "length", "fit"
+}
 
+# الـ attributes اللي CLIP جيد فيها
+CLIP_STRONG = {
+    "category", "pattern", "occasion",
+    "season", "material_look"
+}
+
+# الـ attributes اللي NLP يكملها فقط
+NLP_FILL_ONLY = {
+    "length", "silhouette", "detail"
+}
 
 # ════════════════════════════════════════════════════════════
-# 2 — مستخلص Florence
+# 2 — قواعد الأزياء
+# ════════════════════════════════════════════════════════════
+
+FASHION_RULES = {
+    "off shoulder":  {"sleeve": "sleeveless"},
+    "strapless":     {"sleeve": "sleeveless"},
+    "turtleneck":    {"neckline_block": ["v-neck","off shoulder","scoop neck"]},
+}
+
+# قيم NLP المسموحة فقط (لمنع الهلوسة)
+NLP_ALLOWED_VALUES = {
+    "sleeve":   {
+        "sleeveless","short sleeve",
+        "long sleeve","3/4 sleeve","cap sleeve"
+    },
+    "neckline": {
+        "crew neck","v-neck","turtleneck",
+        "off shoulder","collared","scoop neck",
+        "boat neck","square neck","sweetheart","strapless"
+    },
+    "fit": {
+        "slim fit","regular fit","oversized",
+        "tight","relaxed"
+    },
+    "pattern": {
+        "solid","striped","floral","plaid",
+        "graphic","polka dots","geometric",
+        "animal print","tie-dye"
+    },
+    "occasion": {
+        "formal","casual","sport","party",
+        "outdoor","beach"
+    },
+    "season": {
+        "summer","winter","spring-autumn"
+    },
+    "length": {
+        "mini","midi","maxi","cropped","regular"
+    },
+}
+
+# ════════════════════════════════════════════════════════════
+# 3 — Florence Keyword Extractor
 # ════════════════════════════════════════════════════════════
 
 FLORENCE_KEYWORDS = {
     "sleeve": {
-        "sleeveless":    ["sleeveless","no sleeve","without sleeve","strapless","tank"],
-        "short sleeve":  ["short sleeve","short-sleeve","cap sleeve","half sleeve"],
-        "long sleeve":   ["long sleeve","long-sleeve","full sleeve","full-length sleeve"],
-        "3/4 sleeve":    ["three-quarter","3/4","elbow length"],
+        "sleeveless": ["sleeveless","no sleeve","strapless",
+                       "tank","without sleeve","bare arm"
+        ],
+        "short sleeve": [
+            "short sleeve","short-sleeve","cap sleeve", "half sleeve"],
+        "long sleeve": ["long sleeve","long-sleeve", "full sleeve", "long sleeves"
+        ],
+        "3/4 sleeve": ["3/4","three-quarter","elbow length"],
     },
+
     "neckline": {
-        "turtleneck or high neck": ["turtleneck","high neck","polo neck","funnel neck"],
-        "v-neck":                  ["v-neck","v neck","v-shaped"],
-        "off shoulder":            ["off shoulder","off-shoulder","bardot"],
-        "crew neck or round neck": ["crew neck","round neck","crew-neck"],
-        "collared or polo collar": ["collar","collared","polo"],
-        "square neckline":         ["square neck","square neckline"],
-        "scoop neck":              ["scoop","scoop neck"],
+        "turtleneck": [
+            "turtleneck","polo neck",
+            "high neck","funnel neck","roll neck"],
+        "v-neck": ["v-neck", "v neck","v-shaped"],
+        "off shoulder": ["off-shoulder","off shoulder","bardot"],
+        "sweetheart": [
+            "sweetheart","sweetheart neckline","sweetheart-shaped neckline",
+            "heart-shaped neckline", "heart neckline"],
+        "strapless": ["strapless","tube top"],
+        "crew neck": ["crew neck","round neck","crew-neck"],
+        "collared": [ "collar", "collared"],
+        "scoop neck": ["scoop neck", "scoop"],
+        "boat neck": ["boat neck","bateau" ],
+        "square neck": ["square neck","square neckline"],
     },
+
     "category": {
-        "a dress":                      ["dress","gown","maxi dress","mini dress"],
-        "a t-shirt or tee":             ["t-shirt","tee","tshirt"],
-        "a dress shirt or button-up":   ["shirt","button","dress shirt"],
-        "a sweater or knitwear":        ["sweater","knitwear","knit","pullover","jumper"],
-        "a jacket or blazer":           ["jacket","blazer","suit jacket"],
-        "a coat or overcoat":           ["coat","overcoat","trench"],
-        "jeans or denim pants":         ["jeans","denim"],
-        "trousers or dress pants":      ["trousers","pants","slacks"],
-        "a skirt":                      ["skirt"],
-        "a hoodie or sweatshirt":       ["hoodie","sweatshirt"],
-        "boots":                        ["boots","boot"],
-        "sneakers or athletic shoes":   ["sneakers","sneaker","trainers"],
-        "shoes or leather shoes":       ["shoes","loafers","oxfords"],
+        "dress": ["dress","gown","frock"],
+        "t-shirt": ["t-shirt","tee","tshirt"],
+        "shirt": ["shirt","button-up","blouse"],
+        "sweater": ["sweater","knitwear","pullover","jumper","knit"],
+        "jacket": ["jacket","blazer"],
+        "coat": ["coat","overcoat","trench"],
+        "jeans": ["jeans","denim"],
+        "pants": ["trousers","pants","slacks"],
+        "skirt": ["skirt"],
+        "hoodie": ["hoodie","sweatshirt"],
+        "shoes": ["shoes","heels","pumps","loafers"],
+        "boots": ["boots"],
+        "sneakers": ["sneakers","trainers"],
+        "shorts": ["shorts"],
     },
-    "fit": {
-        "slim fit":      ["slim","fitted","tailored","skinny"],
-        "oversized":     ["oversized","baggy","loose","wide"],
-        "regular fit":   ["regular","standard","classic fit"],
-        "tight":         ["tight","bodycon","form-fitting"],
-    },
+
     "pattern": {
-        "solid color":   ["solid","plain","single color","monochrome"],
-        "striped":       ["stripe","striped","stripes"],
-        "floral":        ["floral","flower","flowers","botanical"],
-        "plaid":         ["plaid","checkered","tartan","check"],
-        "graphic print": ["graphic","print","logo","printed"],
+        "solid": ["solid","plain","single color"],
+        "floral": ["floral","flower","flowers"],
+        "striped": ["stripe", "striped"],
+        "plaid": ["plaid","checkered","tartan"],
+        "graphic": ["graphic","print","logo"],
+    },
+
+    "length": {
+        "mini": ["mini","short dress","micro"],
+        "midi": ["midi","knee","mid-length"],
+        "maxi": ["maxi","floor length","full length"],
+        "cropped": ["crop","cropped"],
+    },
+
+    "fit": {
+        "slim fit": ["slim fit","tailored fit","skinny fit"],
+        "oversized": ["oversized","baggy","loose","boxy"],
+        "tight": ["bodycon","tight","form-fitting"],
+    },
+
+    "silhouette": {
+        "ball gown": ["ball gown","princess gown"],
+        "a-line": ["a-line","aline" ],
+        "mermaid": ["mermaid","trumpet dress"],
+        "sheath": ["sheath"],
+        "bodycon": ["bodycon"],
+        "empire": ["empire waist"],
+        "fit and flare": ["fit and flare"]
     }
 }
 
-def extract_from_florence(
-        description: str
-) -> Dict[str, Optional[str]]:
-    """
-    يستخرج attributes من وصف Florence النصي
-    """
-    desc  = description.lower()
-    found = {}
-
+def extract_florence_attrs(description: str) -> Dict:
+    desc   = description.lower()
+    result = {}
     for attr, keyword_map in FLORENCE_KEYWORDS.items():
         for value, keywords in keyword_map.items():
             if any(kw in desc for kw in keywords):
-                found[attr] = value
+                result[attr] = value
                 break
-
-    return found
+    return result
 
 
 # ════════════════════════════════════════════════════════════
-# 3 — Conflict Detector
+# 4 — NLP Validator
 # ════════════════════════════════════════════════════════════
 
-def detect_conflicts(
-        attrs: Dict[str, str]
-) -> List[str]:
+def validate_nlp(nlp_attrs: Dict) -> Dict:
     """
-    يكتشف التناقضات في الـ attributes
+    يفلتر NLP ويحذف القيم الغير standard أو الهلوسة
     """
-    conflicts = []
-    neckline  = attrs.get("neckline", "")
-    sleeve    = attrs.get("sleeve", "")
-    category  = attrs.get("category", "")
+    validated = {}
+    for attr, val in nlp_attrs.items():
+        if attr in NLP_ALLOWED_VALUES:
+            allowed = NLP_ALLOWED_VALUES[attr]
+            # تحقق تطابق مباشر أو جزئي
+            matched = None
+            for allowed_val in allowed:
+                if (allowed_val in val.lower()
+                        or val.lower() in allowed_val):
+                    matched = allowed_val
+                    break
+            if matched:
+                validated[attr] = matched
+            # لو ما تطابق — تجاهل (لا تضيف)
+        elif attr in {"category", "material_look"}:
+            # هذه حر — قبلها كما هي
+            validated[attr] = val
 
-    # تضارب: off-shoulder مع أي كم
-    if ("off shoulder" in neckline
-            and "sleeveless" not in sleeve):
-        conflicts.append(
-            f"off-shoulder ⇒ يجب أن يكون sleeveless"
-            f" لكن وجدنا: {sleeve}"
-        )
-
-    # تضارب: turtleneck مع off-shoulder
-    if ("turtleneck" in neckline
-            and "off shoulder" in neckline):
-        conflicts.append("turtleneck لا يمكن مع off-shoulder")
-
-    return conflicts
+    return validated
 
 
 # ════════════════════════════════════════════════════════════
-# 4 — Rule Fixer
-# ════════════════════════════════════════════════════════════
-
-def apply_fashion_rules(
-        attrs: Dict[str, str]
-) -> Dict[str, str]:
-    """
-    يصحح التناقضات تلقائياً
-    """
-    fixed = attrs.copy()
-
-    # Rule 1: off-shoulder ⇒ sleeveless
-    neckline = fixed.get("neckline", "")
-    if "off shoulder" in neckline:
-        fixed["sleeve"] = "sleeveless clothing, no sleeves"
-
-    # Rule 2: turtleneck ⇒ لا v-neck
-    if "turtleneck" in neckline:
-        if "v-neck" in neckline:
-            fixed["neckline"] = "turtleneck or high neck"
-
-    # Rule 3: فئات لا تحتاج sleeve
-    category = fixed.get("category", "")
-    no_sleeve_cats = {
-        "shoes", "sneakers", "boots", "sandals",
-        "trousers", "jeans", "shorts", "skirt"
-    }
-    if any(c in category for c in no_sleeve_cats):
-        fixed["sleeve"] = "not applicable"
-
-    return fixed
-
-
-# ════════════════════════════════════════════════════════════
-# 5 — Confidence Gate
-# ════════════════════════════════════════════════════════════
-
-def gate_by_confidence(
-        clip_result: Dict
-) -> Tuple[Dict[str, str], Dict[str, float], List[str]]:
-    """
-    يفلتر النتائج بناءً على عتبة الثقة
-    """
-    accepted  = {}
-    rejected  = []
-    conf_vals = {}
-
-    for attr, data in clip_result.items():
-        value = data.get("value", "")
-        conf  = data.get("confidence", 0.0)
-        thr   = CONFIDENCE_THRESHOLDS.get(attr, 25.0)
-
-        conf_vals[attr] = conf
-
-        if conf >= thr:
-            accepted[attr] = value
-        else:
-            rejected.append(
-                f"{attr}: {conf:.1f}% < {thr}% threshold"
-            )
-
-    return accepted, conf_vals, rejected
-
-
-# ════════════════════════════════════════════════════════════
-# 6 — الدالة الرئيسية — Fusion + Decision
+# 5 — Decision Engine
 # ════════════════════════════════════════════════════════════
 
 class FashionDecisionEngine:
     """
-    يطابق الفكرة: Fashion Decision Engine
-    يجمع Florence + CLIP ويقرر النهائي
+    موزون: Florence (40%) + CLIP (35%) + NLP (25%)
     """
 
     def decide(
             self,
             florence_desc: str,
             clip_result:   Dict,
-            nlp_attrs:     Dict = None,
+            nlp_attrs:     Optional[Dict] = None,
     ) -> Dict:
-        """
-        المدخل:  وصف Florence + نتائج CLIP
-        المخرج:  attributes نهائية + تقرير القرارات
-        """
 
-        decisions_log = []
+        log = []
 
-        # ① استخراج من Florence
-        florence_attrs = extract_from_florence(florence_desc)
-        decisions_log.append(
-            f"Florence استخرج: {list(florence_attrs.keys())}"
-        )
-        # ①.5 دمج نتائج NLP
+        # ① استخرج من Florence
+        f_attrs = extract_florence_attrs(florence_desc)
+        log.append(f"Florence استخرج: {list(f_attrs.keys())}")
+
+        # ② فلتر NLP (لا تقبل هلوسة)
+        n_attrs = {}
         if nlp_attrs:
-           for attr, val in nlp_attrs.items():
-               florence_attrs[attr] = val
-               decisions_log.append(
-                  f"{attr}: NLP استخرج → {val}"
-        )
+            n_attrs = validate_nlp(nlp_attrs)
+            removed = set(nlp_attrs) - set(n_attrs)
+            if removed:
+                log.append(f"NLP: حُذف (غير standard): {removed}")
+            log.append(f"NLP validated: {list(n_attrs.keys())}")
 
-        # ② فلترة CLIP بالثقة
-        clip_accepted, conf_vals, rejected = \
-            gate_by_confidence(clip_result)
+        # ③ فلتر CLIP بالثقة
+        c_attrs = {}
+        for attr, data in clip_result.items():
+            conf = data.get("confidence", 0.0)
+            thr  = CLIP_THRESHOLDS.get(attr, 25.0)
+            if conf >= thr:
+                c_attrs[attr] = {
+                    "value": data["value"],
+                    "conf":  conf
+                }
 
-        if rejected:
-            decisions_log.append(
-                f"CLIP مرفوض لضعف الثقة: {rejected}"
-            )
+        log.append(f"CLIP قبل: {list(c_attrs.keys())}")
 
-        # ③ دمج Florence + CLIP (Florence أولوية)
-        final_attrs = {}
-
+        # ④ دمج بالأولويات
+        final = {}
         all_attrs = set(
-            list(florence_attrs.keys()) +
-            list(clip_accepted.keys())
+            list(f_attrs.keys()) +
+            list(c_attrs.keys()) +
+            list(n_attrs.keys())
         )
 
         for attr in all_attrs:
-            f_val = florence_attrs.get(attr)
-            c_val = clip_accepted.get(attr)
-            c_conf = conf_vals.get(attr, 0.0)
+            f_val = f_attrs.get(attr)
+            c_data = c_attrs.get(attr)
+            c_val  = c_data["value"] if c_data else None
+            c_conf = c_data["conf"]  if c_data else 0.0
+            n_val  = n_attrs.get(attr)
 
-            if f_val and c_val:
-                # الاثنان موجودان — قارن
-                if f_val == c_val:
-                    final_attrs[attr] = f_val
-                    decisions_log.append(
-                        f"{attr}: اتفاق ✓ → {f_val}"
+            # ── منطق الأولوية ──────────────────────────
+
+            # NLP يملأ فقط ما لم يجده Florence وCLIP
+            if attr in NLP_FILL_ONLY:
+                if not f_val and not c_val and n_val:
+                    final[attr] = n_val
+                    log.append(f"{attr}: NLP fill → {n_val}")
+                elif f_val:
+                    final[attr] = f_val
+                elif c_val:
+                    final[attr] = c_val
+                continue
+
+            # Florence قوي في هذا الـ attribute
+            if attr in FLORENCE_STRONG and f_val:
+                if c_val and c_conf >= 60.0 and c_val != f_val:
+                    # CLIP واثق جداً ويختلف — خذ CLIP
+                    final[attr] = c_val
+                    log.append(
+                        f"{attr}: CLIP قوي ({c_conf:.0f}%)"
+                        f" فاز على Florence"
+                        f" ({f_val} → {c_val})"
                     )
                 else:
-                    # Florence أولوية لو الـ CLIP ضعيف
-                    if c_conf < 50.0:
-                        final_attrs[attr] = f_val
-                        decisions_log.append(
-                            f"{attr}: تعارض → "
-                            f"Florence ({f_val}) "
-                            f"فاز على CLIP ({c_val}, "
-                            f"{c_conf:.1f}%)"
+                    # Florence يفوز
+                    final[attr] = f_val
+                    log.append(
+                        f"{attr}: Florence → {f_val}"
+                    )
+
+            # CLIP قوي في هذا الـ attribute
+            elif attr in CLIP_STRONG and c_val:
+                if f_val and f_val != c_val:
+                    # Florence موجود — قارن
+                    if c_conf >= 55.0:
+                        final[attr] = c_val
+                        log.append(
+                            f"{attr}: CLIP ({c_conf:.0f}%)"
+                            f" → {c_val}"
                         )
                     else:
-                        # CLIP قوي — خذ الاثنين وقرر
-                        final_attrs[attr] = c_val
-                        decisions_log.append(
-                            f"{attr}: تعارض → "
-                            f"CLIP ({c_val}, {c_conf:.1f}%) "
-                            f"فاز على Florence ({f_val})"
+                        final[attr] = f_val
+                        log.append(
+                            f"{attr}: Florence → {f_val}"
+                            f" (CLIP ضعيف {c_conf:.0f}%)"
                         )
+                else:
+                    final[attr] = c_val
+                    log.append(
+                        f"{attr}: CLIP ({c_conf:.0f}%)"
+                        f" → {c_val}"
+                    )
 
-            elif f_val:
-                final_attrs[attr] = f_val
-                decisions_log.append(
-                    f"{attr}: Florence فقط → {f_val}"
+            # NLP كآخر خيار
+            elif n_val and attr not in final:
+                final[attr] = n_val
+                log.append(
+                    f"{attr}: NLP (fallback) → {n_val}"
                 )
 
-            elif c_val:
-                final_attrs[attr] = c_val
-                decisions_log.append(
-                    f"{attr}: CLIP فقط → "
-                    f"{c_val} ({c_conf:.1f}%)"
-                )
-
-        # ④ اكتشاف التناقضات
-        conflicts = detect_conflicts(final_attrs)
-        if conflicts:
-            decisions_log.append(
-                f"تناقضات مكتشفة: {conflicts}"
-            )
-
-        # ⑤ تصحيح بقواعد الأزياء
-        final_attrs = apply_fashion_rules(final_attrs)
-        decisions_log.append("✓ تطبيق قواعد الأزياء")
-
-        # ⑥ أضف ما تبقى من CLIP المقبول
-        for attr, val in clip_accepted.items():
-            if attr not in final_attrs:
-                final_attrs[attr] = val
+        # ⑤ تطبيق قواعد الأزياء
+        final = self._apply_rules(final, log)
 
         return {
-            "final_attributes": final_attrs,
-            "confidence":       conf_vals,
-            "decisions_log":    decisions_log,
-            "florence_found":   florence_attrs,
-            "clip_accepted":    clip_accepted,
-            "clip_rejected":    rejected,
+            "final_attributes": final,
+            "confidence": {
+                k: v.get("confidence", 0.0)
+                for k, v in clip_result.items()
+            },
+            "decisions_log": log,
         }
+
+    def _apply_rules(
+            self,
+            attrs: Dict,
+            log:   List
+    ) -> Dict:
+        fixed    = attrs.copy()
+        neckline = fixed.get("neckline", "")
+
+        # off-shoulder ⇒ sleeveless
+        if "off shoulder" in neckline:
+            if fixed.get("sleeve") != "sleeveless":
+                fixed["sleeve"] = "sleeveless"
+                log.append(
+                    "Rule: off-shoulder ⇒ sleeve=sleeveless"
+                )
+
+        # strapless ⇒ sleeveless
+        if "strapless" in neckline:
+            fixed["sleeve"] = "sleeveless"
+            log.append("Rule: strapless ⇒ sleeve=sleeveless")
+
+        # turtleneck يحذف necklines متعارضة
+        if "turtleneck" in neckline:
+            blocked = ["v-neck","off shoulder","scoop"]
+            for b in blocked:
+                if b in neckline:
+                    fixed["neckline"] = "turtleneck"
+                    log.append(
+                        f"Rule: turtleneck ⇒ حذف {b}"
+                    )
+
+        return fixed
