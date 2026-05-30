@@ -249,6 +249,7 @@ class FashionDecisionEngine:
             self,
             florence_desc: str,
             clip_result:   Dict,
+            nlp_attrs:     Dict = None,
     ) -> Dict:
         """
         المدخل:  وصف Florence + نتائج CLIP
@@ -261,6 +262,13 @@ class FashionDecisionEngine:
         florence_attrs = extract_from_florence(florence_desc)
         decisions_log.append(
             f"Florence استخرج: {list(florence_attrs.keys())}"
+        )
+        # ①.5 دمج نتائج NLP
+        if nlp_attrs:
+           for attr, val in nlp_attrs.items():
+               florence_attrs[attr] = val
+               decisions_log.append(
+                  f"{attr}: NLP استخرج → {val}"
         )
 
         # ② فلترة CLIP بالثقة

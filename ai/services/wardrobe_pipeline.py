@@ -1,21 +1,24 @@
 
-import os
-import json
+import os, json
 from PIL import Image
 from typing import Dict, List, Optional
 
-from ai.services.background_remover    import BackgroundRemover
-from ai.services.clothing_describer    import ClothingDescriber
-from ai.services.attribute_classifier  import AttributeClassifier
-from ai.services.color_extractor       import ColorExtractor
+from ai.services.background_remover      import BackgroundRemover
+from ai.services.clothing_describer      import ClothingDescriber
+from ai.services.attribute_classifier    import AttributeClassifier
+from ai.services.color_extractor         import ColorExtractor
 from ai.services.fashion_decision_engine import FashionDecisionEngine
+from ai.services.fashion_nlp_extractor   import FashionNLPExtractor
 
 
 class WardrobePipeline:
 
-    def __init__(self):
+    def __init__(self, use_llm: bool = True):
         self.bg_remover   = BackgroundRemover()
         self.describer    = ClothingDescriber()
+        self.nlp_extractor = FashionNLPExtractor(
+            use_llm=use_llm
+        )
         self.attr_clf     = AttributeClassifier()
         self.color_ext    = ColorExtractor()
         self.decision_eng = FashionDecisionEngine()
@@ -27,54 +30,58 @@ class WardrobePipeline:
         print(f"{'─'*50}")
 
         try:
+            # ① إزالة الخلفية
             print("① إزالة الخلفية...")
             image = self.bg_remover.remove(image_path)
 
-            print("② وصف القطعة (Florence)...")
+            # ② Florence — وصف نصي
+            print("② Florence — وصف نصي...")
             description = self.describer.describe(image)
 
-            print("③ تصنيف CLIP...")
+            # ③ NLP — استخراج منظم من الوصف  ← الجديد
+            print("③ NLP — استخراج attributes...")
+            nlp_attrs = self.nlp_extractor.extract(
+                description
+            )
+
+            # ④ CLIP — تصنيف مباشر من الصورة
+            print("④ CLIP — تصنيف الصورة...")
             clip_raw = self.attr_clf.classify(image)
 
-            print("④ قرار Fashion Engine...")
+            # ⑤ Fashion Engine — دمج وقرار
+            print("⑤ Fashion Engine — دمج وقرار...")
             decision = self.decision_eng.decide(
                 florence_desc = description,
                 clip_result   = clip_raw,
+                nlp_attrs     = nlp_attrs,  # ← الجديد
             )
 
-            # طباعة قرارات الـ Engine
+            # طباعة القرارات
             print("\n  ── قرارات الـ Engine:")
             for log in decision["decisions_log"]:
                 print(f"    {log}")
 
-            print("\n⑤ استخراج الألوان...")
+            # ⑥ الألوان
+            print("\n⑥ استخراج الألوان...")
             colors = self.color_ext.extract(image)
-
-            print("⑥ تصنيف المجموعات اللونية...")
             colors = self.color_ext.classify_groups(colors)
 
-            result = {
-                "status":      "success",
-                "image_path":  image_path,
-                "description": description,
-                "attributes":  decision["final_attributes"],
-                "confidence":  decision["confidence"],
-                "colors":      colors,
-                "primary_color": colors[0] if colors else None,
-                "engine_log":  decision["decisions_log"],
+            return {
+                "status":       "success",
+                "image_path":   image_path,
+                "description":  description,
+                "attributes":   decision["final_attributes"],
+                "confidence":   decision["confidence"],
+                "colors":       colors,
+                "primary_color":colors[0] if colors else None,
+                "engine_log":   decision["decisions_log"],
             }
-
-            print("\n✓ اكتمل التحليل")
-            return result
 
         except FileNotFoundError:
             return {"status":"error",
-                    "message":f"الصورة غير موجودة: {image_path}"}
-        except ValueError as e:
-            return {"status":"error","message":str(e)}
+                    "message":f"الصورة غير موجودة"}
         except Exception as e:
-            return {"status":"error",
-                    "message":f"خطأ: {str(e)}"}
+            return {"status":"error","message":str(e)}
 
     def analyze_item_from_bytes(
             self, image_bytes: bytes,
@@ -103,24 +110,15 @@ class WardrobePipeline:
         results = []
         success = 0
         failed  = 0
-
         print(f"\nتحليل {len(image_paths)} قطعة...")
-
         for i, path in enumerate(image_paths):
             print(f"\n[{i+1}/{len(image_paths)}]")
             r = self.analyze_item(path)
             results.append(r)
-            if r["status"] == "success":
-                success += 1
-            else:
-                failed += 1
-
+            if r["status"] == "success": success += 1
+            else: failed += 1
         print(f"\n✓ نجح: {success} | ✗ فشل: {failed}")
-
         if save_path:
             with open(save_path,"w",encoding="utf-8") as f:
-                json.dump(results, f,
-                          ensure_ascii=False, indent=2)
-            print(f"✓ محفوظ: {save_path}")
-
+                json.dump(results,f,ensure_ascii=False,indent=2)
         return results
