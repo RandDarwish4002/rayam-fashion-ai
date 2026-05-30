@@ -3,8 +3,8 @@
   "image_path": "/content/rayam-fashion-ai/thumbnail-500x500.webp",
   "description": "The image shows a woman in a black dress with a mask on her face, holding a handbag in her hand. The background is dark, creating a mysterious atmosphere.",
   "attributes": {
-    "season": "medium weight spring or autumn clothing",
-    "category": "a dress"
+    "category": "a dress",
+    "season": "medium weight spring or autumn clothing"
   },
   "confidence": {
     "category": 5.1,
@@ -18,51 +18,61 @@
   },
   "colors": [
     {
-      "hex": "#0a0c11",
-      "weight": 55.2,
+      "hex": "#0a0b10",
+      "weight": 51.3,
       "lab": [
-        3.5,
+        3.3,
         0.1,
         -2.5
       ],
       "group": "Darks"
     },
     {
-      "hex": "#222226",
-      "weight": 28.7,
+      "hex": "#1e1f23",
+      "weight": 26.5,
       "lab": [
-        13.6,
+        12.0,
         0.7,
-        -2.8
+        -3.0
       ],
       "group": "Darks"
     },
     {
-      "hex": "#423d3c",
-      "weight": 8.9,
+      "hex": "#343335",
+      "weight": 13.1,
       "lab": [
-        26.4,
-        2.2,
-        1.1
+        21.5,
+        1.0,
+        -1.6
       ],
       "group": "Neutrals"
     },
     {
-      "hex": "#8e6952",
-      "weight": 6.0,
+      "hex": "#674f42",
+      "weight": 5.3,
       "lab": [
-        48.1,
-        13.1,
-        19.0
+        36.1,
+        8.9,
+        11.6
+      ],
+      "group": "Neutrals"
+    },
+    {
+      "hex": "#a0806a",
+      "weight": 3.8,
+      "lab": [
+        56.6,
+        10.1,
+        17.2
       ],
       "group": "Metallics"
     }
   ],
   "primary_color": {
-    "hex": "#0a0c11",
-    "weight": 55.2,
+    "hex": "#0a0b10",
+    "weight": 51.3,
     "lab": [
-      3.5,
+      3.3,
       0.1,
       -2.5
     ],
@@ -71,8 +81,8 @@
   "engine_log": [
     "Florence استخرج: ['category']",
     "CLIP مرفوض لضعف الثقة: ['category: 5.1% < 40.0% threshold', 'sleeve: 20.4% < 35.0% threshold', 'fit: 20.2% < 25.0% threshold', 'neckline: 12.8% < 30.0% threshold', 'pattern: 10.4% < 25.0% threshold', 'occasion: 17.2% < 30.0% threshold', 'material_look: 10.3% < 20.0% threshold']",
-    "season: CLIP فقط → medium weight spring or autumn clothing (33.8%)",
     "category: Florence فقط → a dress",
+    "season: CLIP فقط → medium weight spring or autumn clothing (33.8%)",
     "✓ تطبيق قواعد الأزياء"
   ]
 }
