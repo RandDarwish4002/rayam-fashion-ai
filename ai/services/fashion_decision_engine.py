@@ -84,7 +84,14 @@ NLP_ALLOWED_VALUES = {
     },
     "length": {
         "mini","midi","maxi","cropped","regular"
-    },
+    },"silhouette": {
+    "ball gown","a-line","mermaid","sheath",
+    "bodycon","empire","fit and flare"
+},"color": {
+    "black","white","red","blue","green",
+    "purple","pink","yellow","brown",
+    "beige","gray","gold","silver"
+}
 }
 
 # ════════════════════════════════════════════════════════════
