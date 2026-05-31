@@ -1,0 +1,107 @@
+{
+  "status": "success",
+  "image_path": "Uqgrm.webp",
+  "description": "The image shows a woman wearing a stunning purple off-the-shoulder ball gown with a beaded neckline. The dress is made of a luxurious fabric and has a fitted bodice with a full skirt that flares out from the waist. The beading adds a touch of sparkle and glamour to the dress, making it perfect for any special occasion.",
+  "attributes": {
+    "category": "dress",
+    "season": "spring-autumn",
+    "fit": "slim fit",
+    "occasion": "party night out evening wear",
+    "silhouette": "ball gown",
+    "sleeve": "sleeveless",
+    "neckline": "off shoulder",
+    "material_look": "shiny silk or satin fabric",
+    "length": "maxi",
+    "color": "purple"
+  },
+  "confidence": {
+    "category": 5.2,
+    "sleeve": 20.3,
+    "fit": 20.3,
+    "neckline": 13.0,
+    "pattern": 10.7,
+    "occasion": 17.4,
+    "season": 34.0,
+    "material_look": 10.3
+  },
+  "colors": [
+    {
+      "hex": "#6f204c",
+      "weight": 43.4,
+      "lab": [
+        26.9,
+        38.3,
+        -7.5
+      ],
+      "group": "Brights"
+    },
+    {
+      "hex": "#983772",
+      "weight": 28.0,
+      "lab": [
+        39.3,
+        45.4,
+        -12.3
+      ],
+      "group": "Brights"
+    },
+    {
+      "hex": "#3a1025",
+      "weight": 17.6,
+      "lab": [
+        12.3,
+        22.7,
+        -3.4
+      ],
+      "group": "Darks"
+    },
+    {
+      "hex": "#dbbeb5",
+      "weight": 7.0,
+      "lab": [
+        79.6,
+        9.5,
+        8.8
+      ],
+      "group": "Pastels"
+    },
+    {
+      "hex": "#654f51",
+      "weight": 4.0,
+      "lab": [
+        36.1,
+        9.7,
+        2.2
+      ],
+      "group": "Neutrals"
+    }
+  ],
+  "primary_color": {
+    "hex": "#6f204c",
+    "weight": 43.4,
+    "lab": [
+      26.9,
+      38.3,
+      -7.5
+    ],
+    "group": "Brights"
+  },
+  "engine_log": [
+    "Florence استخرج: ['sleeve', 'neckline', 'category', 'fit', 'silhouette']",
+    "NLP validated: ['category', 'silhouette', 'color', 'occasion', 'length']",
+    "CLIP category: 5.2% < 15.0% threshold",
+    "CLIP pattern: 10.7% < 12.0% threshold",
+    "CLIP مقبول: ['sleeve', 'fit', 'neckline', 'occasion', 'season', 'material_look']",
+    "category: NLP (fallback) → dress",
+    "season: CLIP (34.0%) → medium weight spring or autumn clothing",
+    "fit: Florence → slim fit (CLIP weak 20.3%)",
+    "occasion: CLIP (17.4%) → party night out evening wear",
+    "silhouette: Florence → ball gown",
+    "sleeve: Florence → sleeveless",
+    "neckline: Florence → off shoulder",
+    "material_look: CLIP (10.3%) → shiny silk or satin fabric",
+    "length: NLP (fallback) → maxi",
+    "color: NLP fill → purple",
+    "Season normalized: medium weight spring or autumn clothing → spring-autumn"
+  ]
+}

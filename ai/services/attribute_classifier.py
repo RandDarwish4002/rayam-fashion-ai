@@ -5,151 +5,186 @@ from PIL import Image
 from typing import Dict, List
 from ai.services.model_loader import ModelLoader
 
+# ============================================================
+# ATTRIBUTES — PROMPTS محسّنة وقصيرة
+# ============================================================
+
 ATTRIBUTES: Dict[str, List[str]] = {
     "category": [
-        # أكثر تفصيلاً وأوضح
-        "a black or colored turtleneck sweater",
-        "a knit sweater or pullover",
-        "a t-shirt or casual tee shirt",
-        "a formal dress shirt with buttons",
-        "a women's blouse",
-        "dress pants or formal trousers",
-        "blue jeans or denim pants",
-        "shorts or bermuda shorts",
-        "a women's skirt",
-        "a women's dress or gown",
-        "a blazer or suit jacket",
-        "a winter coat or long coat",
-        "a zip-up hoodie or sweatshirt",
-        "leather shoes or oxford shoes",
-        "running sneakers or sports shoes",
-        "a knit cardigan with buttons",
-        "a suit vest or formal waistcoat",
-        "a jumpsuit or one-piece outfit",
-        "ankle boots or knee-high boots",
-        "sandals or open-toe shoes",
-        "a polo shirt with collar",
+        # فئات أوضح وأقصر للـ CLIP
+        "turtleneck sweater",
+        "knit sweater", 
+        "t-shirt",
+        "dress shirt",
+        "blouse",
+        "dress pants",
+        "jeans",
+        "shorts",
+        "skirt",
+        "dress",
+        "evening gown",
+        "blazer",
+        "winter coat",
+        "hoodie",
+        "leather shoes",
+        "sneakers",
+        "cardigan",
+        "vest",
+        "jumpsuit",
+        "boots",
+        "sandals",
+        "polo shirt",
+        "jacket",
+        "suit",
+        "trench coat",
+        "pajamas",
+        "swimsuit",
+        "leggings",
     ],
+    
     "sleeve": [
-        # أوضح وأكثر تمييزاً
-        "sleeveless clothing, tank top, no sleeves at all",
-        "short sleeves ending above the elbow",
-        "full long sleeves covering the entire arm to the wrist",
-        "three-quarter sleeves ending below the elbow",
-        "very short cap sleeves on the shoulder only",
+        "sleeveless",
+        "short sleeves",
+        "long sleeves",
+        "three quarter sleeves",
+        "cap sleeves",
     ],
+    
     "fit": [
-        "very tight slim fit clothing hugging the body",
-        "normal regular fit clothing",
-        "very loose oversized baggy clothing",
-        "bodycon tight fitting clothing",
-        "relaxed comfortable loose fit clothing",
+        "slim fit",
+        "regular fit",
+        "oversized",
+        "bodycon",
+        "relaxed fit",
     ],
+    
     "neckline": [
-        "crew neck round neckline",
-        "v-shaped neckline",
-        "high turtleneck covering the neck",
-        "shirt collar or polo collar",
-        "off shoulder neckline",
-        "wide scoop neckline",
-        "wide boat neck neckline",
-        "square neckline",
+        "crew neck",
+        "v-neck",
+        "turtleneck",
+        "collared",
+        "off shoulder",
+        "scoop neck",
+        "boat neck",
+        "square neck",
+        "sweetheart",
+        "strapless",
     ],
+    
     "pattern": [
-        "plain solid single color no pattern",
-        "striped pattern with lines",
-        "plaid checkered tartan pattern",
-        "floral pattern with flowers",
-        "graphic design logo or print pattern",
-        "polka dots pattern",
-        "geometric shapes pattern",
-        "animal print leopard zebra pattern",
-        "camouflage military pattern",
-        "tie-dye swirl pattern",
+        "solid",
+        "striped",
+        "plaid",
+        "floral",
+        "graphic",
+        "polka dots",
+        "geometric",
+        "animal print",
+        "camouflage",
+        "tie dye",
+        "checkered",
+        "argyle",
     ],
+    
     "occasion": [
-        "business formal office professional wear",
-        "casual everyday relaxed wear",
-        "sports gym athletic activewear",
-        "party night out evening wear",
-        "outdoor hiking camping wear",
-        "beach summer vacation wear",
+        "formal",
+        "casual",
+        "sportswear",
+        "party wear",
+        "outdoor wear",
+        "beach wear",
+        "business wear",
+        "club wear",
+        "wedding attire",
     ],
+    
     "season": [
-        "light thin summer clothing for hot weather",
-        "thick warm winter clothing for cold weather",
-        "medium weight spring or autumn clothing",
+        "summer",
+        "winter", 
+        "spring autumn",
+        "all season",
     ],
+    
     "material_look": [
-        "denim jean material",
-        "leather or faux leather material",
-        "knitted wool or knitwear texture",
-        "plain cotton casual fabric",
-        "shiny silk or satin fabric",
-        "linen natural fabric",
-        "synthetic polyester fabric",
-        "heavy wool woolen fabric",
-        "soft velvet fabric",
-        "transparent mesh or sheer fabric",
+        "denim",
+        "leather",
+        "knit",
+        "cotton",
+        "silk",
+        "linen",
+        "polyester",
+        "wool",
+        "velvet",
+        "mesh",
+        "lace",
+        "satin",
+        "fur",
+        "corduroy",
+        "chiffon",
     ]
 }
 
+# ============================================================
+# Temperature Scaling لتحسين توزيع الثقة
+# ============================================================
 
 class AttributeClassifier:
-
+    
+    def __init__(self, temperature: float = 0.07):
+        """
+        temperature: أقل = توزيع أكثر حدة (أفضل للتصنيف)
+        """
+        self.temperature = temperature
+        print(f"✓ AttributeClassifier (temperature={temperature})")
+    
     def classify(self, image: Image.Image) -> Dict:
-
+        
         clip_model, clip_preprocess = ModelLoader.clip()
         DEVICE = ModelLoader.get_device()
-
-        image_rgb    = image.convert("RGB")
-        image_tensor = clip_preprocess(image_rgb)\
-            .unsqueeze(0).to(DEVICE)
-
+        
+        image_rgb = image.convert("RGB")
+        image_tensor = clip_preprocess(image_rgb).unsqueeze(0).to(DEVICE)
+        
         result = {}
-
+        
         with torch.no_grad():
-            image_features = clip_model.encode_image(
-                image_tensor
-            )
-            image_features = image_features / \
-                image_features.norm(dim=-1, keepdim=True)
-
+            # Normalize image features
+            image_features = clip_model.encode_image(image_tensor)
+            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+            
             for attr_name, labels in ATTRIBUTES.items():
-                batch_size = 10
+                batch_size = 20  # أكبر قليلاً
                 all_scores = []
-
+                
                 for i in range(0, len(labels), batch_size):
-                    batch  = labels[i:i+batch_size]
+                    batch = labels[i:i+batch_size]
                     tokens = clip.tokenize(batch).to(DEVICE)
-                    tf     = clip_model.encode_text(tokens)
-                    tf     = tf / tf.norm(
-                        dim=-1, keepdim=True
-                    )
-                    sims   = (image_features @ tf.T)[0]
-                    all_scores.extend(sims.cpu().tolist())
-
-                scores   = torch.softmax(
-                    torch.FloatTensor(all_scores), dim=0
-                )
+                    text_features = clip_model.encode_text(tokens)
+                    text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+                    
+                    # حساب التشابه
+                    similarities = (image_features @ text_features.T).squeeze(0)
+                    all_scores.extend(similarities.cpu().tolist())
+                
+                # تطبيق temperature scaling قبل softmax
+                scores_tensor = torch.FloatTensor(all_scores) / self.temperature
+                scores = torch.softmax(scores_tensor, dim=0)
+                
                 best_idx = scores.argmax().item()
-                conf     = round(
-                    scores[best_idx].item() * 100, 1
-                )
-
+                confidence = round(scores[best_idx].item() * 100, 1)
+                
                 result[attr_name] = {
-                    "value":      labels[best_idx],
-                    "confidence": conf
+                    "value": labels[best_idx],
+                    "confidence": confidence
                 }
-
-        print(
-            f"  ✓ category: "
-            f"{result['category']['value']} "
-            f"({result['category']['confidence']}%)"
-        )
-        print(
-            f"  ✓ sleeve: "
-            f"{result['sleeve']['value']} "
-            f"({result['sleeve']['confidence']}%)"
-        )
+        
+        # طباعة النتائج
+        print(f"  ✓ category: {result['category']['value']} ({result['category']['confidence']}%)")
+        print(f"  ✓ sleeve: {result['sleeve']['value']} ({result['sleeve']['confidence']}%)")
+        print(f"  ✓ fit: {result['fit']['value']} ({result['fit']['confidence']}%)")
+        print(f"  ✓ neckline: {result['neckline']['value']} ({result['neckline']['confidence']}%)")
+        print(f"  ✓ pattern: {result['pattern']['value']} ({result['pattern']['confidence']}%)")
+        print(f"  ✓ occasion: {result['occasion']['value']} ({result['occasion']['confidence']}%)")
+        print(f"  ✓ season: {result['season']['value']} ({result['season']['confidence']}%)")
+        
         return result
