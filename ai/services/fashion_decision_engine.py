@@ -1,32 +1,32 @@
 
 # ============================================================
 # ai/services/fashion_decision_engine.py
-# النسخة المحسّنة - أوزان ديناميكية + عتبات منخفضة
+# النسخة النهائية المحسّنة
 # ============================================================
 
 from typing import Dict, List, Optional, Tuple
 import re
 
 # ════════════════════════════════════════════════════════════
-# 1 — أوزان المصادر (تم تعديلها)
+# 1 — أوزان المصادر (نهائية)
 # ════════════════════════════════════════════════════════════
 
 SOURCE_WEIGHTS = {
-    "florence": 0.35,   # تم التخفيض من 0.40
-    "clip":     0.45,   # تم الرفع من 0.35 (CLIP أفضل في التصنيف)
-    "nlp":      0.20,   # تم التخفيض من 0.25
+    "florence": 0.35,
+    "clip":     0.45,
+    "nlp":      0.20,
 }
 
-# عتبات الثقة لكل مصدر (تم تخفيضها بشكل كبير)
+# عتبات الثقة لكل مصدر (تم تخفيض category إلى 12%)
 CLIP_THRESHOLDS = {
-    "category":     15.0,   # كانت 40.0
-    "sleeve":       15.0,   # كانت 30.0
-    "neckline":     12.0,   # كانت 28.0
-    "fit":          12.0,   # كانت 25.0
-    "pattern":      12.0,   # كانت 25.0
-    "occasion":     15.0,   # كانت 30.0
-    "season":       15.0,   # كانت 28.0
-    "material_look":10.0,   # كانت 20.0
+    "category":     12.0,   # ← 12% عشان evening gown (13.8%) يقبل
+    "sleeve":       15.0,
+    "neckline":     12.0,
+    "fit":          12.0,
+    "pattern":      12.0,
+    "occasion":     15.0,
+    "season":       15.0,
+    "material_look":10.0,
 }
 
 # الـ attributes اللي Florence جيد فيها
@@ -34,18 +34,18 @@ FLORENCE_STRONG = {
     "neckline", "sleeve", "length", "silhouette", "fit"
 }
 
-# الـ attributes اللي CLIP جيد فيها (تم التوسيع)
+# الـ attributes اللي CLIP جيد فيها
 CLIP_STRONG = {
     "category", "pattern", "occasion", "season", "material_look", "fit"
 }
 
 # الـ attributes اللي NLP يكملها فقط
 NLP_FILL_ONLY = {
-    "detail", "color"  # length و silhouette أصبحت من Florence
+    "detail", "color"
 }
 
 # ════════════════════════════════════════════════════════════
-# 2 — قواعد الأزياء الموسعة
+# 2 — قواعد الأزياء (محسّنة)
 # ════════════════════════════════════════════════════════════
 
 FASHION_RULES = {
@@ -56,11 +56,11 @@ FASHION_RULES = {
     "turtleneck":    {"neckline_block": ["v-neck","off shoulder","scoop neck"]},
 }
 
-# قيم NLP المسموحة (تم التوسيع والتسامح)
+# قيم NLP المسموحة (موسعة)
 NLP_ALLOWED_VALUES = {
     "sleeve":   {
         "sleeveless", "short sleeve", "short sleeves",
-        "long sleeve", "long sleeves", "3/4 sleeve", "cap sleeve"
+        "long sleeve", "long sleeves", "3/4 sleeve", "cap sleeves", "cap sleeve"
     },
     "neckline": {
         "crew neck", "v-neck", "turtleneck", "turtle neck",
@@ -74,14 +74,14 @@ NLP_ALLOWED_VALUES = {
     "pattern": {
         "solid", "striped", "stripes", "floral", "flower",
         "plaid", "checkered", "graphic", "print", "polka dots",
-        "geometric", "animal print", "tie-dye"
+        "geometric", "animal print", "tie-dye", "beaded", "embellished"
     },
     "occasion": {
         "formal", "casual", "sport", "athletic", "party", "evening",
         "outdoor", "beach", "wedding", "cocktail", "business"
     },
     "season": {
-        "summer", "winter", "spring", "autumn", "fall", "spring-autumn", "transitional"
+        "summer", "winter", "spring", "autumn", "fall", "spring autumn", "spring-autumn", "transitional"
     },
     "length": {
         "mini", "midi", "maxi", "cropped", "regular", "floor length", "full length", "knee length"
@@ -98,14 +98,14 @@ NLP_ALLOWED_VALUES = {
 }
 
 # ════════════════════════════════════════════════════════════
-# 3 — Florence Keyword Extractor (محسّن)
+# 3 — Florence Keyword Extractor
 # ════════════════════════════════════════════════════════════
 
 FLORENCE_KEYWORDS = {
     "sleeve": {
         "sleeveless": ["sleeveless","no sleeve","strapless","off shoulder","off-the-shoulder",
                        "tank","without sleeve","bare arm", "sweetheart"],
-        "short sleeve": ["short sleeve","short-sleeve","cap sleeve","half sleeve","short sleeves"],
+        "short sleeve": ["short sleeve","short-sleeve","cap sleeve","half sleeve","short sleeves", "cap sleeves"],
         "long sleeve": ["long sleeve","long-sleeve","full sleeve","long sleeves","long sleeved"],
         "3/4 sleeve": ["3/4","three-quarter","elbow length","three quarters"],
     },
@@ -125,7 +125,7 @@ FLORENCE_KEYWORDS = {
 
     "category": {
         "dress": ["dress","gown","frock","evening gown","ball gown","maxi dress","mini dress"],
-        "t-shirt": ["t-shirt","tee","tshirt","t shirt","t-shirt"],
+        "t-shirt": ["t-shirt","tee","tshirt","t shirt"],
         "shirt": ["shirt","button-up","blouse","button down","dress shirt"],
         "sweater": ["sweater","knitwear","pullover","jumper","knit","cardigan"],
         "jacket": ["jacket","blazer","bomber","leather jacket"],
@@ -143,13 +143,14 @@ FLORENCE_KEYWORDS = {
     "pattern": {
         "solid": ["solid","plain","single color","solid color","monochrome"],
         "floral": ["floral","flower","flowers","botanical","bloom"],
-        "striped": ["stripe","striped","stripes","pinstripe","horizontal stripes"],
-        "plaid": ["plaid","checkered","tartan","check","gingham","buffalo check"],
-        "graphic": ["graphic","print","logo","graphic print","text print"],
+        "striped": ["stripe","striped","stripes","pinstripe"],
+        "plaid": ["plaid","checkered","tartan","check","gingham"],
+        "graphic": ["graphic","print","logo","graphic print"],
         "polka dots": ["polka","polka dot","dotted","dots","spot"],
-        "geometric": ["geometric","abstract","shapes","pattern"],
+        "geometric": ["geometric","abstract","shapes"],
         "animal print": ["leopard","zebra","snake","animal print","cheetah","tiger"],
         "tie-dye": ["tie-dye","tiedye","tie dye"],
+        "beaded": ["beaded","beading","embellished","sequin","sparkle"],
     },
 
     "length": {
@@ -179,21 +180,16 @@ FLORENCE_KEYWORDS = {
 
 
 def normalize_text(text: str) -> str:
-    """
-    توحيد النص قبل المطابقة
-    """
+    """توحيد النص قبل المطابقة"""
     text = text.lower()
     text = text.replace("-", " ")
     text = re.sub(r"\s+", " ", text)
-    # إزالة علامات الترقيم
     text = re.sub(r'[^\w\s]', '', text)
     return text.strip()
 
 
 def extract_florence_attrs(description: str) -> Dict:
-    """
-    استخراج attributes من وصف Florence
-    """
+    """استخراج attributes من وصف Florence"""
     desc = normalize_text(description)
     result = {}
 
@@ -207,13 +203,11 @@ def extract_florence_attrs(description: str) -> Dict:
 
 
 # ════════════════════════════════════════════════════════════
-# 4 — NLP Validator (محسّن وأقل صرامة)
+# 4 — NLP Validator (أقل صرامة)
 # ════════════════════════════════════════════════════════════
 
 def validate_nlp(nlp_attrs: Dict) -> Dict:
-    """
-    يفلتر NLP - أصبح أقل صرامة ويحافظ على المعلومات
-    """
+    """يفلتر NLP - أقل صرامة ويحافظ على المعلومات"""
     validated = {}
     
     for attr, val in nlp_attrs.items():
@@ -239,19 +233,17 @@ def validate_nlp(nlp_attrs: Dict) -> Dict:
             if matched:
                 validated[attr] = matched
             else:
-                # لم نجد تطابقاً، لكن نحتفظ بالقيمة مع تحذير خفيف
-                # بدلاً من حذفها كلياً
+                # نحتفظ بالقيمة مع تحذير خفيف
                 validated[attr] = val_lower
                 
         elif attr in {"category", "material_look", "color"}:
-            # هذه نمررها كما هي دائماً
             validated[attr] = val_lower
     
     return validated
 
 
 # ════════════════════════════════════════════════════════════
-# Season Normalization (محسّن)
+# Season Normalization
 # ════════════════════════════════════════════════════════════
 
 SEASON_NORMALIZATION = {
@@ -262,6 +254,7 @@ SEASON_NORMALIZATION = {
     "spring": "spring-autumn",
     "autumn": "spring-autumn",
     "fall": "spring-autumn",
+    "spring autumn": "spring-autumn",
     "transitional": "spring-autumn",
 }
 
@@ -275,25 +268,19 @@ def normalize_season(value):
         if key in val_lower or val_lower in key:
             return mapped
     
-    if "summer" in val_lower or "light" in val_lower or "hot" in val_lower:
+    if "summer" in val_lower or "light" in val_lower:
         return "summer"
-    if "winter" in val_lower or "warm" in val_lower or "cold" in val_lower or "thick" in val_lower:
+    if "winter" in val_lower or "warm" in val_lower or "cold" in val_lower:
         return "winter"
     
     return value
 
 
 # ════════════════════════════════════════════════════════════
-# 5 — Decision Engine (المحسّن)
+# 5 — Decision Engine (النسخة النهائية)
 # ════════════════════════════════════════════════════════════
 
 class FashionDecisionEngine:
-    """
-    نسخة محسّنة:
-    - أوزان ديناميكية بناءً على ثقة CLIP
-    - عتبات أقل
-    - دمج أذكى
-    """
 
     def decide(
             self,
@@ -308,7 +295,7 @@ class FashionDecisionEngine:
         f_attrs = extract_florence_attrs(florence_desc)
         log.append(f"Florence استخرج: {list(f_attrs.keys())}")
 
-        # ② فلتر NLP (الآن أقل صرامة)
+        # ② فلتر NLP
         n_attrs = {}
         if nlp_attrs:
             n_attrs = validate_nlp(nlp_attrs)
@@ -317,7 +304,7 @@ class FashionDecisionEngine:
                 log.append(f"NLP: حُذف {removed}")
             log.append(f"NLP validated: {list(n_attrs.keys())}")
 
-        # ③ فلتر CLIP بالثقة (عتبات أقل)
+        # ③ فلتر CLIP بالثقة
         c_attrs = {}
         for attr, data in clip_result.items():
             conf = data.get("confidence", 0.0)
@@ -332,7 +319,7 @@ class FashionDecisionEngine:
         
         log.append(f"CLIP مقبول: {list(c_attrs.keys())}")
 
-        # ④ دمج بالأولويات (محسّن)
+        # ④ دمج بالأولويات
         final = {}
         all_attrs = set(f_attrs.keys()) | set(c_attrs.keys()) | set(n_attrs.keys())
 
@@ -343,9 +330,7 @@ class FashionDecisionEngine:
             c_conf = c_data["conf"]  if c_data else 0.0
             n_val  = n_attrs.get(attr)
 
-            # ═══════════════════════════════════════════════
-            # المنطقة 1: attributes اللي NLP فقط تملأها
-            # ═══════════════════════════════════════════════
+            # NLP يملأ فقط
             if attr in NLP_FILL_ONLY:
                 if n_val and not f_val and not c_val:
                     final[attr] = n_val
@@ -356,28 +341,20 @@ class FashionDecisionEngine:
                     final[attr] = c_val
                 continue
 
-            # ═══════════════════════════════════════════════
-            # المنطقة 2: CLIP قوي في هذا الـ attribute
-            # ═══════════════════════════════════════════════
+            # CLIP قوي
             if attr in CLIP_STRONG and c_val:
                 if f_val and f_val != c_val:
-                    # يوجد اختلاف بين CLIP و Florence
                     if c_conf >= 25.0:
-                        # CLIP واثق بشكل معقول → نأخذه
                         final[attr] = c_val
                         log.append(f"{attr}: CLIP ({c_conf:.1f}%) > Florence ({f_val}) → {c_val}")
                     else:
-                        # CLIP ضعيف → نأخذ Florence
                         final[attr] = f_val
                         log.append(f"{attr}: Florence → {f_val} (CLIP weak {c_conf:.1f}%)")
                 else:
-                    # متطابقين أو Florence ما عنده قيمة
                     final[attr] = c_val
                     log.append(f"{attr}: CLIP ({c_conf:.1f}%) → {c_val}")
             
-            # ═══════════════════════════════════════════════
-            # المنطقة 3: Florence قوي
-            # ═══════════════════════════════════════════════
+            # Florence قوي
             elif attr in FLORENCE_STRONG and f_val:
                 if c_val and c_val != f_val and c_conf >= 30.0:
                     final[attr] = c_val
@@ -386,14 +363,12 @@ class FashionDecisionEngine:
                     final[attr] = f_val
                     log.append(f"{attr}: Florence → {f_val}")
             
-            # ═══════════════════════════════════════════════
-            # المنطقة 4: NLP كحل أخير
-            # ═══════════════════════════════════════════════
+            # NLP كحل أخير
             elif n_val and attr not in final:
                 final[attr] = n_val
                 log.append(f"{attr}: NLP (fallback) → {n_val}")
 
-        # ⑤ تطبيق قواعد الأزياء
+        # ⑤ تطبيق قواعد الأزياء (معدلة - تحترم القيم الموجودة)
         final = self._apply_rules(final, log)
         
         # Normalize season
@@ -403,7 +378,7 @@ class FashionDecisionEngine:
             if old_season != final["season"]:
                 log.append(f"Season normalized: {old_season} → {final['season']}")
 
-        # ⑥ إضافة color إذا موجود في NLP
+        # ⑥ إضافة color إذا موجود
         if "color" in n_attrs and "color" not in final:
             final["color"] = n_attrs["color"]
             log.append(f"color: added from NLP → {n_attrs['color']}")
@@ -417,30 +392,30 @@ class FashionDecisionEngine:
             "decisions_log": log,
         }
 
-    def _apply_rules(
-            self,
-            attrs: Dict,
-            log:   List
-    ) -> Dict:
+    def _apply_rules(self, attrs: Dict, log: List) -> Dict:
+        """
+        تطبيق قواعد الأزياء
+        المعدل: لا يفرض sleeve إذا كان موجوداً بالفعل
+        """
         fixed = attrs.copy()
         neckline = fixed.get("neckline", "").lower()
 
-        # off-shoulder ⇒ sleeveless
+        # off-shoulder ⇒ sleeveless (فقط إذا لم يكن sleeve محدد)
         if "off shoulder" in neckline or "off-the-shoulder" in neckline:
-            if fixed.get("sleeve") != "sleeveless":
+            if "sleeve" not in fixed:
                 fixed["sleeve"] = "sleeveless"
-                log.append("Rule: off-shoulder → sleeveless")
+                log.append("Rule: off-shoulder → sleeveless (no sleeve defined)")
 
-        # strapless ⇒ sleeveless
+        # strapless ⇒ sleeveless (فقط إذا لم يكن sleeve محدد)
         if "strapless" in neckline:
-            if fixed.get("sleeve") != "sleeveless":
+            if "sleeve" not in fixed:
                 fixed["sleeve"] = "sleeveless"
-                log.append("Rule: strapless → sleeveless")
+                log.append("Rule: strapless → sleeveless (no sleeve defined)")
 
-        # sweetheart ⇒ sleeveless
+        # sweetheart ⇒ sleeveless (فقط إذا لم يكن sleeve محدد)
         if "sweetheart" in neckline:
-            if fixed.get("sleeve") != "sleeveless":
+            if "sleeve" not in fixed:
                 fixed["sleeve"] = "sleeveless"
-                log.append("Rule: sweetheart → sleeveless")
+                log.append("Rule: sweetheart → sleeveless (no sleeve defined)")
 
         return fixed
