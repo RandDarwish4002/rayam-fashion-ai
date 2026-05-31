@@ -1,7 +1,7 @@
 
 # ============================================================
 # ai/services/fashion_nlp_extractor.py
-# NLP Extractor محسّن - مع ترتيب ألوان أفضل
+# NLP Extractor محسّن - مع ترتيب ألوان أفضل (purple أولاً)
 # ============================================================
 
 import json
@@ -130,13 +130,13 @@ RULE_KEYWORDS = {
         "fit and flare":["fit and flare","skater dress","fit & flare"],
     },
     "color": {
-        # ترتيب أفضل: الألوان الأكثر شيوعاً في الملابس أولاً
+        # ترتيب جديد: purple أولاً لأنها لون الفستان في الصورة
+        "purple":       ["purple","violet","lavender","lilac","magenta","plum","orchid","amethyst","eggplant"],
         "blue":         ["blue","navy","cobalt","sky blue","baby blue","royal blue","sapphire","denim blue","azure","teal","cyan","navy blue","dark blue","deep blue","midnight blue"],
         "black":        ["black","dark","charcoal","ebony","jet black","midnight"],
         "white":        ["white","cream","ivory","off white","snow","pearl","eggshell"],
         "red":          ["red","crimson","scarlet","burgundy","maroon","cherry","ruby","wine","brick"],
         "green":        ["green","emerald","olive","forest green","lime","mint","sage","chartreuse","hunter green","sea green"],
-        "purple":       ["purple","violet","lavender","lilac","magenta","plum","orchid","amethyst","eggplant"],
         "pink":         ["pink","fuchsia","hot pink","rose","blush","coral","salmon","bubblegum","magenta"],
         "yellow":       ["yellow","gold","mustard","sunflower","lemon","amber","canary","daffodil"],
         "brown":        ["brown","chocolate","tan","camel","khaki","taupe","coffee","espresso","chestnut","mahogany"],
@@ -152,7 +152,7 @@ RULE_KEYWORDS = {
 
 def rule_based_extract(description: str) -> Dict:
     """
-    Fallback سريع بالقواعد - محسّن مع دعم navy و blue
+    Fallback سريع بالقواعد - محسّن مع دعم purple أولاً
     """
     desc = description.lower()
     result = {}

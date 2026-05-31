@@ -337,7 +337,7 @@ class FashionDecisionEngine:
             if attr in CLIP_STRONG and c_val:
                 if f_val and f_val != c_val:
                     # عتبة أقل - 15% بدل 25%
-                    if c_conf >= 15.0:
+                    if c_conf >= 13.0:
                         final[attr] = c_val
                         log.append(f"{attr}: CLIP ({c_conf:.1f}%) > Florence ({f_val}) → {c_val}")
                     else:
