@@ -25,61 +25,61 @@
   "colors": [
     {
       "hex": "#6e1f4b",
-      "weight": 40.3,
+      "weight": 42.7,
       "lab": [
-        26.5,
-        38.0,
+        26.7,
+        38.3,
         -7.3
       ],
       "group": "Brights"
     },
     {
-      "hex": "#963670",
-      "weight": 30.3,
+      "hex": "#973771",
+      "weight": 29.3,
       "lab": [
-        38.7,
-        45.1,
-        -12.1
+        39.0,
+        45.2,
+        -12.2
       ],
       "group": "Brights"
     },
     {
-      "hex": "#391024",
-      "weight": 18.8,
+      "hex": "#380f23",
+      "weight": 16.1,
       "lab": [
-        12.0,
-        22.5,
-        -3.3
+        11.7,
+        22.2,
+        -3.1
       ],
       "group": "Darks"
     },
     {
-      "hex": "#dbbfb5",
-      "weight": 7.3,
+      "hex": "#dabeb5",
+      "weight": 7.9,
       "lab": [
-        79.7,
-        9.3,
-        8.8
+        79.5,
+        9.2,
+        8.5
       ],
       "group": "Pastels"
     },
     {
-      "hex": "#634c4c",
-      "weight": 3.3,
+      "hex": "#634b4d",
+      "weight": 4.0,
       "lab": [
-        35.0,
-        9.9,
-        4.2
+        34.8,
+        10.4,
+        3.1
       ],
       "group": "Neutrals"
     }
   ],
   "primary_color": {
     "hex": "#6e1f4b",
-    "weight": 40.3,
+    "weight": 42.7,
     "lab": [
-      26.5,
-      38.0,
+      26.7,
+      38.3,
       -7.3
     ],
     "group": "Brights"

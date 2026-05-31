@@ -210,6 +210,8 @@ def extract_florence_attrs(description: str) -> Dict:
                 break
 
     return result
+
+
 # ════════════════════════════════════════════════════════════
 # 4 — NLP Validator
 # ════════════════════════════════════════════════════════════
@@ -381,12 +383,10 @@ class FashionDecisionEngine:
 
         # ⑤ تطبيق قواعد الأزياء
         final = self._apply_rules(final, log)
-
-        # Normalize season
+        # Normalize season ONLY
         if "season" in final:
-            final["season"] = normalize_season(
-                final["season"]
-            )
+             final["season"] = normalize_season(final["season"])
+             log.append(f"Normalized season → {final['season']}")
 
         return {
             "final_attributes": final,
@@ -396,6 +396,7 @@ class FashionDecisionEngine:
             },
             "decisions_log": log,
         }
+
     def _apply_rules(
             self,
             attrs: Dict,
