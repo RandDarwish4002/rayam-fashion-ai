@@ -1,8 +1,7 @@
 
 # ============================================================
 # ai/services/fashion_nlp_extractor.py
-# NLP Extractor بين Florence وCLIP
-# يحوّل الوصف النصي إلى attributes منظمة
+# NLP Extractor محسّن - بين Florence وCLIP
 # ============================================================
 
 import json
@@ -13,29 +12,24 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 # ════════════════════════════════════════════════════════════
-# 1 — Prompt للنموذج
+# 1 — Prompt محسّن للنموذج
 # ════════════════════════════════════════════════════════════
 
 EXTRACTION_PROMPT = """You are a fashion attribute extractor.
-Extract ONLY these attributes from the clothing description.
-Return ONLY valid JSON, nothing else.
+Extract these attributes from the clothing description.
+Return ONLY valid JSON.
 
-Attributes to extract:
-- category: (t-shirt/shirt/dress/pants/skirt/jacket/coat/sweater/shoes/boots/shorts/blouse/hoodie/cardigan/jumpsuit)
-- sleeve: (sleeveless/short sleeve/long sleeve/3/4 sleeve/cap sleeve)
+Attributes:
+- category: (dress/evening gown/t-shirt/shirt/blouse/pants/jeans/skirt/jacket/coat/sweater/hoodie/shoes/boots/sneakers/shorts/cardigan/jumpsuit)
+- sleeve: (sleeveless/short sleeve/long sleeve/3/4 sleeve/cap sleeves)
 - neckline: (crew neck/v-neck/turtleneck/off shoulder/collared/scoop neck/boat neck/square neck/sweetheart/strapless)
-- fit: (slim fit/regular fit/oversized/tight/relaxed)
-- pattern: (solid/striped/floral/plaid/graphic/polka dots/geometric/animal print/tie-dye)
-- occasion: (formal/casual/sport/party/outdoor/beach)
-- season: (summer/winter/spring-autumn)
-- length: (mini/midi/maxi/cropped/regular) — for dresses and skirts only
+- fit: (slim fit/regular fit/oversized/bodycon/relaxed)
+- pattern: (solid/floral/striped/plaid/graphic/polka dots/geometric/animal print/beaded)
+- occasion: (formal/casual/party/sport/outdoor/beach/wedding)
+- season: (summer/winter/spring-autumn/all-season)
+- length: (mini/midi/maxi/cropped/regular)
 - silhouette: (ball gown/a-line/mermaid/sheath/bodycon/empire/fit and flare)
 - color: (black/white/red/blue/green/purple/pink/yellow/brown/beige/gray/gold/silver)
-
-Rules:
-- If not mentioned, set to null
-- Use ONLY the values listed above
-- Return JSON only
 
 Description: {description}
 
@@ -43,167 +37,170 @@ JSON:"""
 
 
 # ════════════════════════════════════════════════════════════
-# 2 — Rule-Based Fallback (بدون LLM)
+# 2 — Rule-Based (محسّن مع مرادفات أكثر)
 # ════════════════════════════════════════════════════════════
 
 RULE_KEYWORDS = {
     "category": {
-        "t-shirt":      ["t-shirt","tee","tshirt"],
-        "shirt":        ["shirt","button-up","dress shirt"],
-        "dress":        ["dress","gown","frock"],
-        "pants":        ["pants","trousers","slacks"],
-        "jeans":        ["jeans","denim"],
-        "skirt":        ["skirt"],
-        "jacket":       ["jacket","blazer"],
-        "coat":         ["coat","overcoat","trench"],
+        "evening gown": ["evening gown","ball gown","gala dress","red carpet","formal gown"],
+        "dress":        ["dress","frock","maxi dress","mini dress","midi dress"],
+        "t-shirt":      ["t-shirt","tee","tshirt","t shirt"],
+        "shirt":        ["shirt","button-up","dress shirt","blouse"],
+        "blouse":       ["blouse","silk blouse"],
+        "pants":        ["pants","trousers","slacks","dress pants"],
+        "jeans":        ["jeans","denim","blue jeans"],
+        "skirt":        ["skirt","mini skirt","maxi skirt"],
+        "jacket":       ["jacket","blazer","suit jacket"],
+        "coat":         ["coat","overcoat","trench","winter coat"],
         "sweater":      ["sweater","knitwear","pullover","jumper","knit"],
-        "hoodie":       ["hoodie","sweatshirt"],
+        "hoodie":       ["hoodie","sweatshirt","hooded"],
         "shoes":        ["shoes","loafers","oxfords","heels","pumps"],
-        "boots":        ["boots","boot"],
-        "sneakers":     ["sneakers","trainers","athletic shoes"],
-        "shorts":       ["shorts"],
-        "blouse":       ["blouse"],
-        "cardigan":     ["cardigan"],
-        "jumpsuit":     ["jumpsuit","romper"],
+        "boots":        ["boots","ankle boots","knee boots"],
+        "sneakers":     ["sneakers","trainers","athletic shoes","running shoes"],
+        "shorts":       ["shorts","bermuda shorts"],
+        "cardigan":     ["cardigan","knit cardigan"],
+        "jumpsuit":     ["jumpsuit","romper","onesie"],
     },
     "sleeve": {
-        "sleeveless":   ["sleeveless","no sleeve","strapless","tank","without sleeve"],
-        "short sleeve": ["short sleeve","short-sleeve","cap sleeve","half sleeve"],
-        "long sleeve":  ["long sleeve","long-sleeve","full sleeve","full length sleeve","long sleeves"],
-        "3/4 sleeve":   ["3/4","three-quarter","three quarter","elbow"],
+        "sleeveless":   ["sleeveless","no sleeve","strapless","tank","without sleeve","bare arms"],
+        "short sleeve": ["short sleeve","short-sleeve","half sleeve","short sleeves"],
+        "long sleeve":  ["long sleeve","long-sleeve","full sleeve","long sleeves","full length sleeve"],
+        "3/4 sleeve":   ["3/4","three-quarter","three quarter","elbow length"],
+        "cap sleeves":  ["cap sleeve","cap sleeves","short cap"],
     },
     "neckline": {
-        "turtleneck":   ["turtleneck","polo neck","high neck","funnel neck","roll neck"],
-        "v-neck":       ["v-neck","v neck","v-shaped neckline"],
-        "off shoulder": ["off-shoulder","off shoulder","bardot","cold shoulder"],
-        "sweetheart":   ["sweetheart","sweetheart neckline","sweetheart-shaped neckline","heart-shaped neckline"],
-        "strapless":    ["strapless","tube top"],
-        "crew neck":    ["crew neck","round neck","crew-neck"],
-        "collared":     ["collar","collared","point collar"],
-        "scoop neck":   ["scoop","scoop neck"],
-        "boat neck":    ["boat neck","bateau"],
+        "turtleneck":   ["turtleneck","turtle neck","polo neck","high neck","funnel neck","roll neck"],
+        "v-neck":       ["v-neck","v neck","v-shaped","deep v"],
+        "off shoulder": ["off-shoulder","off shoulder","bardot","off the shoulder","cold shoulder"],
+        "sweetheart":   ["sweetheart","sweetheart neckline","heart-shaped","heart neckline"],
+        "strapless":    ["strapless","tube top","straight neck"],
+        "crew neck":    ["crew neck","round neck","crew-neck","round neckline"],
+        "collared":     ["collar","collared","point collar","button down collar","shirt collar"],
+        "scoop neck":   ["scoop","scoop neck","deep scoop"],
+        "boat neck":    ["boat neck","bateau","boatneck"],
         "square neck":  ["square neck","square neckline"],
     },
     "fit": {
-        "slim fit":     ["slim fit","tailored fit","skinny fit"],
-        "oversized":    ["oversized","baggy","loose","boxy","wide"],
-        "tight":        ["tight","bodycon","form-fitting","fitted"],
-        "regular fit":  ["regular","classic fit","standard"],
+        "slim fit":     ["slim fit","tailored fit","skinny fit","fitted","close fitting"],
+        "regular fit":  ["regular","classic fit","standard","normal fit"],
+        "oversized":    ["oversized","oversize","baggy","loose","boxy","wide","relaxed"],
+        "bodycon":      ["bodycon","tight","form-fitting","body hugging","figure hugging"],
         "relaxed":      ["relaxed","easy fit","comfortable"],
     },
     "pattern": {
-        "solid":        ["solid","plain","single color","monochrome","unicolor"],
-        "striped":      ["stripe","striped","stripes","pinstripe"],
-        "floral":       ["floral","flower","flowers","botanical","bloom"],
-        "plaid":        ["plaid","checkered","tartan","check","gingham"],
-        "graphic":      ["graphic","print","logo","printed","text"],
-        "polka dots":   ["polka","dotted","dots"],
-        "geometric":    ["geometric","abstract","shapes"],
-        "animal print": ["leopard","zebra","snake","animal print"],
-        "tie-dye":      ["tie-dye","tiedye"],
+        "solid":        ["solid","plain","single color","monochrome","solid color"],
+        "floral":       ["floral","flower","flowers","botanical","bloom","floral print"],
+        "striped":      ["stripe","striped","stripes","pinstripe","horizontal stripe"],
+        "plaid":        ["plaid","checkered","tartan","check","gingham","buffalo check"],
+        "graphic":      ["graphic","print","logo","printed","text","graphic print"],
+        "polka dots":   ["polka","polka dot","dotted","dots","spot"],
+        "geometric":    ["geometric","abstract","shapes","patterned"],
+        "animal print": ["leopard","zebra","snake","animal print","cheetah","tiger"],
+        "beaded":       ["beaded","beading","embellished","sequin","sequins","sparkle","jeweled"],
+        "tie-dye":      ["tie-dye","tiedye","tie dye"],
     },
     "occasion": {
-        "formal":       ["formal","business","office","professional","work","gala","evening"],
-        "casual":       ["casual","everyday","relaxed","weekend"],
-        "sport":        ["sport","athletic","gym","workout","activewear","running"],
-        "party":        ["party","night out","cocktail","club","festive"],
-        "outdoor":      ["outdoor","hiking","camping","adventure"],
-        "beach":        ["beach","swim","swimwear","tropical","resort"],
+        "formal":       ["formal","business","office","professional","work","gala","evening","wedding","bridal","red carpet"],
+        "casual":       ["casual","everyday","relaxed","weekend","daily"],
+        "party":        ["party","night out","cocktail","club","festive","celebration"],
+        "sport":        ["sport","athletic","gym","workout","activewear","running","sports"],
+        "outdoor":      ["outdoor","hiking","camping","adventure","travel"],
+        "beach":        ["beach","swim","swimwear","tropical","resort","vacation"],
     },
     "season": {
-        "summer":       ["summer","lightweight","light","thin","hot weather","tropical"],
-        "winter":       ["winter","warm","thick","heavy","cold","wool","fleece"],
-        "spring-autumn":["spring","autumn","fall","mid-weight","transitional"],
+        "summer":       ["summer","lightweight","light","thin","hot weather","tropical","beach"],
+        "winter":       ["winter","warm","thick","heavy","cold","wool","fleece","cozy"],
+        "spring-autumn":["spring","autumn","fall","mid-weight","transitional","mild"],
+        "all-season":   ["all season","all year","versatile","every season"],
     },
     "length": {
-        "mini":         ["mini","short dress","short skirt","micro"],
-        "midi":         ["midi","knee","below knee","mid-length"],
-        "maxi":         ["maxi","floor length","long dress","full length"],
-        "cropped":      ["crop","cropped","cut-off","belly"],
+        "mini":         ["mini","short dress","short skirt","micro","above knee"],
+        "midi":         ["midi","mid-length","below knee","mid-calf","knee length"],
+        "maxi":         ["maxi","floor length","full length","long dress","long skirt","ankle length","floor-length"],
+        "cropped":      ["crop","cropped","cut-off","belly","cropped top"],
+        "regular":      ["regular","standard","normal length"],
     },
     "silhouette": {
-    "ball gown": [
-        "ball gown",
-        "princess gown"
-    ],
-    "a-line": [
-        "a-line",
-        "aline"
-    ],
-    "mermaid": [
-        "mermaid",
-        "trumpet dress"
-    ],
-    "sheath": [
-        "sheath"
-    ],
-    "bodycon": [
-        "bodycon"
-    ],
-    "empire": [
-        "empire waist"
-    ],
-    "fit and flare": [
-        "fit and flare"
-    ]
-},"color": {
-    "black": ["black"],
-    "white": ["white"],
-    "red": ["red"],
-    "blue": ["blue"],
-    "green": ["green"],
-    "purple": ["purple","violet","lavender"],
-    "pink": ["pink","fuchsia"],
-    "yellow": ["yellow"],
-    "brown": ["brown"],
-    "beige": ["beige","cream","ivory"],
-    "gray": ["gray","grey"],
-    "gold": ["gold","golden"],
-    "silver": ["silver"]
-},
+        "ball gown":    ["ball gown","ballgown","princess gown","princess dress","full skirt","ballroom"],
+        "a-line":       ["a-line","aline","a line","fit and flare","skater"],
+        "mermaid":      ["mermaid","trumpet dress","trumpet","fishtail","mermaid style"],
+        "sheath":       ["sheath","sheath dress","column","straight cut"],
+        "bodycon":      ["bodycon","body con","bandage","hugging"],
+        "empire":       ["empire waist","empire line","high waist","empire cut"],
+        "fit and flare":["fit and flare","skater dress","fit & flare"],
+    },
+    "color": {
+        "black":        ["black","dark"],
+        "white":        ["white","cream","ivory","off white"],
+        "red":          ["red","crimson","scarlet","burgundy","maroon"],
+        "blue":         ["blue","navy","cobalt","sky blue","baby blue","royal blue"],
+        "green":        ["green","emerald","olive","forest green","lime"],
+        "purple":       ["purple","violet","lavender","lilac","magenta"],
+        "pink":         ["pink","fuchsia","hot pink","rose","blush"],
+        "yellow":       ["yellow","gold","mustard","sunflower"],
+        "brown":        ["brown","chocolate","tan","camel","khaki"],
+        "beige":        ["beige","nude","taupe","sand","ecru"],
+        "gray":         ["gray","grey","charcoal","slate","silver"],
+        "gold":         ["gold","golden","metallic gold"],
+        "silver":       ["silver","metallic silver","platinum"],
+    }
 }
+
 
 def rule_based_extract(description: str) -> Dict:
     """
-    Fallback سريع بالقواعد
+    Fallback سريع بالقواعد - محسّن
     """
     desc = description.lower()
     result = {}
 
+    # استخراج كل الـ attributes من النص
     for attr, keyword_map in RULE_KEYWORDS.items():
         for value, keywords in keyword_map.items():
             if any(kw in desc for kw in keywords):
                 result[attr] = value
+                # نكسر الحلقة عشان ناخذ أول تطابق
                 break
 
-    # ball gown لا نعتبره slim fit
-    if result.get("silhouette") == "ball gown":
-        result.pop("fit", None)
-
-    formal_keywords = [
-        "ball gown",
-        "evening gown",
-        "gala",
-        "formal dress",
-        "beaded bodice",
-        "red carpet",
-        "bridal",
-        "wedding gown",
-    ]
-
-    if any(k in desc for k in formal_keywords):
+    # تطبيق قواعد إضافية ذكية
+    
+    # إذا كان ball gown، نضبط الـ occasion و length
+    if "ball gown" in desc or "evening gown" in desc:
         result["occasion"] = "formal"
-
-    if result.get("neckline") == "off shoulder":
-        result["sleeve"] = "sleeveless"
-
-    if "ball gown" in desc:
         result["length"] = "maxi"
-
-    if "floor length" in desc:
-        result["length"] = "maxi"       
+        if "silhouette" not in result:
+            result["silhouette"] = "ball gown"
+    
+    # off shoulder يعني sleeveless (إذا ما كان sleeve محدد)
+    if "off shoulder" in desc or "off-the-shoulder" in desc:
+        if "sleeve" not in result:
+            result["sleeve"] = "sleeveless"
+    
+    # strapless يعني sleeveless
+    if "strapless" in desc:
+        if "sleeve" not in result:
+            result["sleeve"] = "sleeveless"
+    
+    # sweetheart يعني sleeveless غالباً
+    if "sweetheart" in desc:
+        if "sleeve" not in result:
+            result["sleeve"] = "sleeveless"
+    
+    # beaded أو embellished يعني pattern beaded
+    if "beaded" in desc or "embellished" in desc or "sequin" in desc:
+        result["pattern"] = "beaded"
+    
+    # floor length أو long dress يعني maxi
+    if "floor length" in desc or "full length" in desc:
+        result["length"] = "maxi"
+    
+    # knee length يعني midi
+    if "knee length" in desc or "knee-length" in desc:
+        if "length" not in result:
+            result["length"] = "midi"
 
     return result
+
 
 # ════════════════════════════════════════════════════════════
 # 3 — LLM Extractor (Qwen2.5-0.5B)
@@ -211,8 +208,7 @@ def rule_based_extract(description: str) -> Dict:
 
 class FashionNLPExtractor:
     """
-    يحوّل وصف Florence النصي إلى attributes منظمة
-    يُوضع بين Florence وCLIP في الـ pipeline
+    NLP Extractor محسّن - يحوّل وصف Florence إلى attributes
     """
 
     def __init__(
@@ -220,11 +216,10 @@ class FashionNLPExtractor:
             use_llm: bool = True,
             model_id: str = "Qwen/Qwen2.5-0.5B-Instruct"
     ):
-        self.use_llm  = use_llm
-        self._tok     = None
-        self._model   = None
-        self._device  = "cuda" if torch.cuda.is_available() \
-                        else "cpu"
+        self.use_llm = use_llm
+        self._tok = None
+        self._model = None
+        self._device = "cuda" if torch.cuda.is_available() else "cpu"
 
         if use_llm:
             self._load_model(model_id)
@@ -234,14 +229,10 @@ class FashionNLPExtractor:
     def _load_model(self, model_id: str):
         try:
             print(f"تحميل {model_id}...")
-            self._tok = AutoTokenizer.from_pretrained(
-                model_id
-            )
+            self._tok = AutoTokenizer.from_pretrained(model_id)
             self._model = AutoModelForCausalLM.from_pretrained(
                 model_id,
-                torch_dtype=torch.float16
-                            if self._device == "cuda"
-                            else torch.float32,
+                torch_dtype=torch.float16 if self._device == "cuda" else torch.float32,
                 device_map="auto"
             )
             self._model.eval()
@@ -253,24 +244,14 @@ class FashionNLPExtractor:
 
     def _llm_extract(self, description: str) -> Dict:
         """استخراج بالـ LLM"""
-        prompt = EXTRACTION_PROMPT.format(
-            description=description
-        )
+        prompt = EXTRACTION_PROMPT.format(description=description)
         messages = [
-            {"role": "system",
-             "content": "You extract fashion attributes. Return only JSON."},
-            {"role": "user",
-             "content": prompt}
+            {"role": "system", "content": "You extract fashion attributes. Return only JSON."},
+            {"role": "user", "content": prompt}
         ]
 
-        text = self._tok.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-        inputs = self._tok(
-            [text], return_tensors="pt"
-        ).to(self._device)
+        text = self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self._tok([text], return_tensors="pt").to(self._device)
 
         with torch.no_grad():
             ids = self._model.generate(
@@ -281,33 +262,24 @@ class FashionNLPExtractor:
                 pad_token_id=self._tok.eos_token_id
             )
 
-        output = self._tok.decode(
-            ids[0][inputs.input_ids.shape[1]:],
-            skip_special_tokens=True
-        ).strip()
+        output = self._tok.decode(ids[0][inputs.input_ids.shape[1]:], skip_special_tokens=True).strip()
 
-        # استخرج JSON
+        # استخراج JSON
         try:
-            json_match = re.search(
-                r'\{.*?\}', output, re.DOTALL
-            )
+            json_match = re.search(r'\{.*?\}', output, re.DOTALL)
             if json_match:
                 parsed = json.loads(json_match.group())
-                # احذف null values
-                return {
-                    k: v for k, v in parsed.items()
-                    if v and v != "null"
-                }
+                return {k: v for k, v in parsed.items() if v and v != "null"}
         except Exception:
             pass
 
-        # fallback
+        # Fallback للقواعد
         return rule_based_extract(description)
 
     def extract(self, description: str) -> Dict:
         """
-        المدخل:  وصف نصي من Florence
-        المخرج:  attributes منظمة
+        المدخل: وصف نصي من Florence
+        المخرج: attributes منظمة
         """
         if not description or len(description) < 10:
             return {}
