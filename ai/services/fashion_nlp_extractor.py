@@ -1,7 +1,7 @@
 
 # ============================================================
 # ai/services/fashion_nlp_extractor.py
-# NLP Extractor محسّن - بين Florence وCLIP
+# NLP Extractor محسّن - مع ألوان محسّنة
 # ============================================================
 
 import json
@@ -29,7 +29,7 @@ Attributes:
 - season: (summer/winter/spring-autumn/all-season)
 - length: (mini/midi/maxi/cropped/regular)
 - silhouette: (ball gown/a-line/mermaid/sheath/bodycon/empire/fit and flare)
-- color: (black/white/red/blue/green/purple/pink/yellow/brown/beige/gray/gold/silver)
+- color: (black/white/red/blue/green/purple/pink/yellow/brown/beige/gray/gold/silver/navy)
 
 Description: {description}
 
@@ -130,26 +130,30 @@ RULE_KEYWORDS = {
         "fit and flare":["fit and flare","skater dress","fit & flare"],
     },
     "color": {
-        "black":        ["black","dark"],
-        "white":        ["white","cream","ivory","off white"],
-        "red":          ["red","crimson","scarlet","burgundy","maroon"],
-        "blue":         ["blue","navy","cobalt","sky blue","baby blue","royal blue"],
-        "green":        ["green","emerald","olive","forest green","lime"],
-        "purple":       ["purple","violet","lavender","lilac","magenta"],
-        "pink":         ["pink","fuchsia","hot pink","rose","blush"],
-        "yellow":       ["yellow","gold","mustard","sunflower"],
-        "brown":        ["brown","chocolate","tan","camel","khaki"],
-        "beige":        ["beige","nude","taupe","sand","ecru"],
-        "gray":         ["gray","grey","charcoal","slate","silver"],
-        "gold":         ["gold","golden","metallic gold"],
-        "silver":       ["silver","metallic silver","platinum"],
+        # الألوان الأساسية
+        "black":        ["black","dark","charcoal","ebony","jet black","midnight"],
+        "white":        ["white","cream","ivory","off white","snow","pearl","eggshell"],
+        "red":          ["red","crimson","scarlet","burgundy","maroon","cherry","ruby","wine","brick"],
+        "blue":         ["blue","navy","cobalt","sky blue","baby blue","royal blue","sapphire","denim blue","azure","teal","cyan"],
+        "navy":         ["navy","navy blue","dark blue","deep blue","midnight blue","navy blue","ink blue","marine"],
+        "green":        ["green","emerald","olive","forest green","lime","mint","sage","chartreuse","hunter green","sea green"],
+        "purple":       ["purple","violet","lavender","lilac","magenta","plum","orchid","amethyst","eggplant"],
+        "pink":         ["pink","fuchsia","hot pink","rose","blush","coral","salmon","bubblegum","magenta"],
+        "yellow":       ["yellow","gold","mustard","sunflower","lemon","amber","canary","daffodil"],
+        "brown":        ["brown","chocolate","tan","camel","khaki","taupe","coffee","espresso","chestnut","mahogany"],
+        "beige":        ["beige","nude","sand","ecru","oatmeal","stone","taupe","fawn","greige"],
+        "gray":         ["gray","grey","charcoal","slate","smoke","pewter","dove gray","gunmetal","silver gray"],
+        "gold":         ["gold","golden","metallic gold","brass","copper","bronze"],
+        "silver":       ["silver","metallic silver","platinum","chrome","mercury"],
+        "multicolor":   ["multicolor","colorful","rainbow","pattern","print","tie dye","ombre","gradient"],
+        "transparent":  ["transparent","clear","sheer","see through","mesh","net","organza","tulle","gauze"],
     }
 }
 
 
 def rule_based_extract(description: str) -> Dict:
     """
-    Fallback سريع بالقواعد - محسّن
+    Fallback سريع بالقواعد - محسّن مع دعم navy
     """
     desc = description.lower()
     result = {}
