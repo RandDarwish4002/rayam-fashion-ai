@@ -215,6 +215,27 @@ def validate_nlp(nlp_attrs: Dict) -> Dict:
 
     return validated
 
+# ════════════════════════════════════════════════════════════
+# Season Normalization
+# ════════════════════════════════════════════════════════════
+
+SEASON_NORMALIZATION = {
+    "medium weight spring or autumn clothing": "spring-autumn",
+    "spring or autumn mid-weight clothing": "spring-autumn",
+    "summer lightweight thin clothing": "summer",
+    "winter warm thick clothing": "winter",
+}
+
+
+def normalize_season(value):
+    if not value:
+        return value
+
+    return SEASON_NORMALIZATION.get(
+        value.lower(),
+        value
+    )
+
 
 # ════════════════════════════════════════════════════════════
 # 5 — Decision Engine
@@ -338,6 +359,12 @@ class FashionDecisionEngine:
         # ⑤ تطبيق قواعد الأزياء
         final = self._apply_rules(final, log)
 
+        # Normalize season
+        if "season" in final:
+            final["season"] = normalize_season(
+                final["season"]
+            )
+
         return {
             "final_attributes": final,
             "confidence": {
@@ -346,7 +373,6 @@ class FashionDecisionEngine:
             },
             "decisions_log": log,
         }
-
     def _apply_rules(
             self,
             attrs: Dict,
