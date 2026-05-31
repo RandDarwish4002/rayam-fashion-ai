@@ -1,7 +1,7 @@
 
 # ============================================================
 # ai/services/fashion_decision_engine.py
-# النسخة النهائية المحسّنة
+# النسخة النهائية المحسّنة - مع إضافة sleeve إلى CLIP_STRONG
 # ============================================================
 
 from typing import Dict, List, Optional, Tuple
@@ -17,26 +17,26 @@ SOURCE_WEIGHTS = {
     "nlp":      0.20,
 }
 
-# عتبات الثقة لكل مصدر (تم تخفيض category إلى 12%)
+# عتبات الثقة لكل مصدر
 CLIP_THRESHOLDS = {
-    "category":     12.0,   # ← 12% عشان evening gown (13.8%) يقبل
-    "sleeve":       15.0,
+    "category":     10.0,   # تم تخفيضها من 12 إلى 10
+    "sleeve":       12.0,
     "neckline":     12.0,
     "fit":          12.0,
     "pattern":      12.0,
-    "occasion":     15.0,
-    "season":       15.0,
+    "occasion":     12.0,
+    "season":       12.0,
     "material_look":10.0,
 }
 
 # الـ attributes اللي Florence جيد فيها
 FLORENCE_STRONG = {
-    "neckline", "sleeve", "length", "silhouette", "fit"
+    "neckline", "length", "silhouette", "fit"
 }
 
-# الـ attributes اللي CLIP جيد فيها
+# الـ attributes اللي CLIP جيد فيها (تمت إضافة sleeve)
 CLIP_STRONG = {
-    "category", "pattern", "occasion", "season", "material_look", "fit"
+    "category", "pattern", "occasion", "season", "material_look", "fit", "sleeve"
 }
 
 # الـ attributes اللي NLP يكملها فقط
@@ -48,15 +48,6 @@ NLP_FILL_ONLY = {
 # 2 — قواعد الأزياء (محسّنة)
 # ════════════════════════════════════════════════════════════
 
-FASHION_RULES = {
-    "off shoulder":  {"sleeve": "sleeveless"},
-    "off-the-shoulder": {"sleeve": "sleeveless"},
-    "strapless":     {"sleeve": "sleeveless"},
-    "sweetheart":    {"sleeve": "sleeveless"},
-    "turtleneck":    {"neckline_block": ["v-neck","off shoulder","scoop neck"]},
-}
-
-# قيم NLP المسموحة (موسعة)
 NLP_ALLOWED_VALUES = {
     "sleeve":   {
         "sleeveless", "short sleeve", "short sleeves",
@@ -81,7 +72,7 @@ NLP_ALLOWED_VALUES = {
         "outdoor", "beach", "wedding", "cocktail", "business"
     },
     "season": {
-        "summer", "winter", "spring", "autumn", "fall", "spring autumn", "spring-autumn", "transitional"
+        "summer", "winter", "spring", "autumn", "fall", "spring autumn", "spring-autumn", "transitional", "all season"
     },
     "length": {
         "mini", "midi", "maxi", "cropped", "regular", "floor length", "full length", "knee length"
@@ -203,7 +194,7 @@ def extract_florence_attrs(description: str) -> Dict:
 
 
 # ════════════════════════════════════════════════════════════
-# 4 — NLP Validator (أقل صرامة)
+# 4 — NLP Validator
 # ════════════════════════════════════════════════════════════
 
 def validate_nlp(nlp_attrs: Dict) -> Dict:
@@ -256,6 +247,7 @@ SEASON_NORMALIZATION = {
     "fall": "spring-autumn",
     "spring autumn": "spring-autumn",
     "transitional": "spring-autumn",
+    "all season": "all-season",
 }
 
 
@@ -341,10 +333,11 @@ class FashionDecisionEngine:
                     final[attr] = c_val
                 continue
 
-            # CLIP قوي
+            # CLIP قوي (العتبة 18% بدل 25%)
             if attr in CLIP_STRONG and c_val:
                 if f_val and f_val != c_val:
-                    if c_conf >= 25.0:
+                    # عتبة أقل - 18% بدل 25%
+                    if c_conf >= 18.0:
                         final[attr] = c_val
                         log.append(f"{attr}: CLIP ({c_conf:.1f}%) > Florence ({f_val}) → {c_val}")
                     else:
@@ -368,7 +361,7 @@ class FashionDecisionEngine:
                 final[attr] = n_val
                 log.append(f"{attr}: NLP (fallback) → {n_val}")
 
-        # ⑤ تطبيق قواعد الأزياء (معدلة - تحترم القيم الموجودة)
+        # ⑤ تطبيق قواعد الأزياء
         final = self._apply_rules(final, log)
         
         # Normalize season
