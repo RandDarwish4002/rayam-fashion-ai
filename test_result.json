@@ -1,88 +1,100 @@
 {
   "status": "success",
-  "image_path": "/content/rayam-fashion-ai/thumbnail-500x500.webp",
-  "description": "The image shows a woman in a black dress with a mask on her face, holding a handbag in her hand. The background is dark, creating a mysterious atmosphere.",
+  "image_path": "/content/rayam-fashion-ai/Uqgrm.webp",
+  "description": "The image shows a woman wearing a stunning purple off-the-shoulder ball gown with a beaded neckline. The dress is made of a luxurious fabric and has a fitted bodice with a full skirt that flares out from the waist. The beading adds a touch of sparkle and glamour to the dress, making it perfect for any special occasion.",
   "attributes": {
-    "category": "a dress",
-    "season": "medium weight spring or autumn clothing"
+    "color": "purple",
+    "fit": "slim fit",
+    "sleeve": "sleeveless",
+    "silhouette": "ball gown",
+    "season": "spring-autumn",
+    "length": "maxi",
+    "occasion": "party",
+    "category": "dress"
   },
   "confidence": {
-    "category": 5.1,
-    "sleeve": 20.4,
-    "fit": 20.2,
-    "neckline": 12.8,
-    "pattern": 10.4,
-    "occasion": 17.2,
-    "season": 33.8,
+    "category": 5.2,
+    "sleeve": 20.3,
+    "fit": 20.3,
+    "neckline": 13.0,
+    "pattern": 10.7,
+    "occasion": 17.4,
+    "season": 34.0,
     "material_look": 10.3
   },
   "colors": [
     {
-      "hex": "#0a0b10",
-      "weight": 51.3,
+      "hex": "#6e1f4b",
+      "weight": 40.3,
       "lab": [
-        3.3,
-        0.1,
-        -2.5
+        26.5,
+        38.0,
+        -7.3
       ],
-      "group": "Darks"
+      "group": "Brights"
     },
     {
-      "hex": "#1e1f23",
-      "weight": 26.5,
+      "hex": "#963670",
+      "weight": 30.3,
+      "lab": [
+        38.7,
+        45.1,
+        -12.1
+      ],
+      "group": "Brights"
+    },
+    {
+      "hex": "#391024",
+      "weight": 18.8,
       "lab": [
         12.0,
-        0.7,
-        -3.0
+        22.5,
+        -3.3
       ],
       "group": "Darks"
     },
     {
-      "hex": "#343335",
-      "weight": 13.1,
+      "hex": "#dbbfb5",
+      "weight": 7.3,
       "lab": [
-        21.5,
-        1.0,
-        -1.6
+        79.7,
+        9.3,
+        8.8
       ],
-      "group": "Neutrals"
+      "group": "Pastels"
     },
     {
-      "hex": "#674f42",
-      "weight": 5.3,
+      "hex": "#634c4c",
+      "weight": 3.3,
       "lab": [
-        36.1,
-        8.9,
-        11.6
+        35.0,
+        9.9,
+        4.2
       ],
       "group": "Neutrals"
-    },
-    {
-      "hex": "#a0806a",
-      "weight": 3.8,
-      "lab": [
-        56.6,
-        10.1,
-        17.2
-      ],
-      "group": "Metallics"
     }
   ],
   "primary_color": {
-    "hex": "#0a0b10",
-    "weight": 51.3,
+    "hex": "#6e1f4b",
+    "weight": 40.3,
     "lab": [
-      3.3,
-      0.1,
-      -2.5
+      26.5,
+      38.0,
+      -7.3
     ],
-    "group": "Darks"
+    "group": "Brights"
   },
   "engine_log": [
-    "Florence استخرج: ['category']",
-    "CLIP مرفوض لضعف الثقة: ['category: 5.1% < 40.0% threshold', 'sleeve: 20.4% < 35.0% threshold', 'fit: 20.2% < 25.0% threshold', 'neckline: 12.8% < 30.0% threshold', 'pattern: 10.4% < 25.0% threshold', 'occasion: 17.2% < 30.0% threshold', 'material_look: 10.3% < 20.0% threshold']",
-    "category: Florence فقط → a dress",
-    "season: CLIP فقط → medium weight spring or autumn clothing (33.8%)",
-    "✓ تطبيق قواعد الأزياء"
+    "Florence استخرج: ['category', 'silhouette']",
+    "NLP: حُذف (غير standard): {'pattern', 'neckline'}",
+    "NLP validated: ['category', 'sleeve', 'fit', 'occasion', 'season', 'length', 'silhouette', 'color']",
+    "CLIP قبل: ['season']",
+    "color: NLP (fallback) → purple",
+    "fit: NLP (fallback) → slim fit",
+    "sleeve: NLP (fallback) → sleeveless",
+    "season: CLIP (34%) → medium weight spring or autumn clothing",
+    "length: NLP fill → maxi",
+    "occasion: NLP (fallback) → party",
+    "category: Florence → dress"
   ]
 }

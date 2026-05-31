@@ -176,17 +176,40 @@ FLORENCE_KEYWORDS = {
     }
 }
 
+import re
+from typing import Dict
+
+def normalize_text(text: str) -> str:
+    """
+    توحيد النص قبل المطابقة:
+    - lower case
+    - تحويل - إلى space
+    - إزالة التكرار في الفراغات
+    """
+    text = text.lower()
+    text = text.replace("-", " ")
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
 def extract_florence_attrs(description: str) -> Dict:
-    desc   = description.lower()
+    """
+    استخراج attributes من وصف Florence باستخدام keyword matching
+    بعد normalizing النص لتفادي مشاكل hyphens / spacing
+    """
+
+    desc = normalize_text(description)
     result = {}
+
     for attr, keyword_map in FLORENCE_KEYWORDS.items():
         for value, keywords in keyword_map.items():
-            if any(kw in desc for kw in keywords):
+
+            # نطبع كل keyword أيضاً normalized
+            if any(normalize_text(kw) in desc for kw in keywords):
                 result[attr] = value
                 break
+
     return result
-
-
 # ════════════════════════════════════════════════════════════
 # 4 — NLP Validator
 # ════════════════════════════════════════════════════════════
