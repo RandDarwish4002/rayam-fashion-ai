@@ -1,7 +1,7 @@
 
 # ============================================================
 # ai/services/fashion_nlp_extractor.py
-# NLP Extractor محسّن - مع ألوان محسّنة
+# NLP Extractor محسّن - مع ترتيب ألوان أفضل
 # ============================================================
 
 import json
@@ -37,7 +37,7 @@ JSON:"""
 
 
 # ════════════════════════════════════════════════════════════
-# 2 — Rule-Based (محسّن مع مرادفات أكثر)
+# 2 — Rule-Based (مع ترتيب ألوان أفضل)
 # ════════════════════════════════════════════════════════════
 
 RULE_KEYWORDS = {
@@ -130,12 +130,11 @@ RULE_KEYWORDS = {
         "fit and flare":["fit and flare","skater dress","fit & flare"],
     },
     "color": {
-        # الألوان الأساسية
+        # ترتيب أفضل: الألوان الأكثر شيوعاً في الملابس أولاً
+        "blue":         ["blue","navy","cobalt","sky blue","baby blue","royal blue","sapphire","denim blue","azure","teal","cyan","navy blue","dark blue","deep blue","midnight blue"],
         "black":        ["black","dark","charcoal","ebony","jet black","midnight"],
         "white":        ["white","cream","ivory","off white","snow","pearl","eggshell"],
         "red":          ["red","crimson","scarlet","burgundy","maroon","cherry","ruby","wine","brick"],
-        "blue":         ["blue","navy","cobalt","sky blue","baby blue","royal blue","sapphire","denim blue","azure","teal","cyan"],
-        "navy":         ["navy","navy blue","dark blue","deep blue","midnight blue","navy blue","ink blue","marine"],
         "green":        ["green","emerald","olive","forest green","lime","mint","sage","chartreuse","hunter green","sea green"],
         "purple":       ["purple","violet","lavender","lilac","magenta","plum","orchid","amethyst","eggplant"],
         "pink":         ["pink","fuchsia","hot pink","rose","blush","coral","salmon","bubblegum","magenta"],
@@ -153,7 +152,7 @@ RULE_KEYWORDS = {
 
 def rule_based_extract(description: str) -> Dict:
     """
-    Fallback سريع بالقواعد - محسّن مع دعم navy
+    Fallback سريع بالقواعد - محسّن مع دعم navy و blue
     """
     desc = description.lower()
     result = {}
